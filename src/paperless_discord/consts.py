@@ -1,7 +1,7 @@
 from django.utils.translation import gettext_lazy as _
 
 LOGIN_ROUTE_NAME = "account_login"
-DISCORD_REDIRECT_ROUTE_NAME = "paperless_discord:callback"
+DISCORD_REDIRECT_ROUTE_NAME = "paperless_discord:redirect"
 DISCORD_AUTHENTICATION_BACKEND = "paperless_discord.auth.DiscordAuthenticationBackend"
 DISCORD_LOGIN_ERROR_ATTR = "discord_login_error"
 
@@ -12,6 +12,8 @@ LOCAL_DEV_HOSTS = ("localhost", "127.0.0.1")
 DISCORD_TOKEN_PATH = "/oauth2/token"
 DISCORD_GUILD_MEMBER_PATH = "/v10/users/@me/guilds/{guild_id}/member"
 DISCORD_USER_PATH = "/users/@me"
+
+DISCORD_FALLBACK_EMAIL_DOMAIN = "discord.invalid"
 
 ERROR_DISCORD_MISSING_CONFIGURATION = _("La configuración de Discord OAuth está incompleta.")
 ERROR_DISCORD_INVALID_STATE = _("La respuesta de Discord no es válida. Intenta iniciar sesión nuevamente.")

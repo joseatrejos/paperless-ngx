@@ -15,82 +15,72 @@ from .consts import (
 
 
 def has_discord_configuration():
-    """Return whether the required Discord OAuth settings are available."""
-    return bool(
-        getattr(settings, "DISCORD_CLIENT_ID", None)
-        and getattr(settings, "DISCORD_CLIENT_SECRET", None)
-        and getattr(settings, "DISCORD_SCOPES", None)
-    )
+    return all([
+        settings.DISCORD_CLIENT_ID,
+        settings.DISCORD_CLIENT_SECRET,
+        settings.DISCORD_SCOPES,
+    ])
 
 
 def get_redirect_uri(request):
-    """Return the configured redirect URI or build it from the current request."""
     callback_uri = request.build_absolute_uri(reverse(DISCORD_REDIRECT_ROUTE_NAME))
-    configured = getattr(settings, "DISCORD_REDIRECT_URI", None)
-    if not configured:
+    if not settings.DISCORD_REDIRECT_URI:
         return callback_uri
 
-    configured_parsed = urlparse(configured)
-    request_parsed = urlparse(callback_uri)
+    configured_uri = urlparse(settings.DISCORD_REDIRECT_URI)
+    request_uri = urlparse(callback_uri)
 
-    if configured_parsed.hostname in LOCAL_DEV_HOSTS and configured_parsed.netloc != request_parsed.netloc:
+    if configured_uri.hostname in LOCAL_DEV_HOSTS and configured_uri.netloc != request_uri.netloc:
         return callback_uri
 
-    return configured
+    return settings.DISCORD_REDIRECT_URI
 
 
 def build_authorization_url(request, state):
-    """Build the Discord authorization URL for the current request."""
     params = {
         "client_id": settings.DISCORD_CLIENT_ID,
         "redirect_uri": get_redirect_uri(request),
-        "response_type": getattr(settings, "DISCORD_RESPONSE_TYPE", "code"),
-        "scope": " ".join(getattr(settings, "DISCORD_SCOPES", ["identify", "email"])),
+        "response_type": settings.DISCORD_RESPONSE_TYPE,
+        "scope": " ".join(settings.DISCORD_SCOPES),
         "state": state,
     }
-    auth_url = getattr(settings, "DISCORD_AUTH_URL", "https://discord.com/oauth2/authorize")
-    return f"{auth_url}?{urlencode(params)}"
+    return f"{settings.DISCORD_AUTH_URL}?{urlencode(params)}"
 
 
 def exchange_code_for_token(request, code):
-    """Exchange the Discord authorization code for an access token."""
     if not code:
         return None
 
     data = {
         "client_id": settings.DISCORD_CLIENT_ID,
         "client_secret": settings.DISCORD_CLIENT_SECRET,
-        "grant_type": getattr(settings, "DISCORD_GRANT_TYPE", "authorization_code"),
+        "grant_type": settings.DISCORD_GRANT_TYPE,
         "code": code,
         "redirect_uri": get_redirect_uri(request),
-        "scope": " ".join(getattr(settings, "DISCORD_SCOPES", ["identify", "email"])),
+        "scope": " ".join(settings.DISCORD_SCOPES),
     }
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
-    api_url = getattr(settings, "DISCORD_API_URL", "https://discord.com/api")
 
     try:
         response = httpx.post(
-            f"{api_url}{DISCORD_TOKEN_PATH}",
-            data=data,
-            headers=headers,
-            timeout=DISCORD_API_TIMEOUT,
+            f"{settings.DISCORD_API_URL}{DISCORD_TOKEN_PATH}",
+            data=data, headers=headers, timeout=DISCORD_API_TIMEOUT,
         )
         response.raise_for_status()
-        return response.json().get("access_token")
+        payload = response.json()
     except (httpx.HTTPError, ValueError):
         return None
 
+    return payload.get("access_token")
+
 
 def get_discord_guild_member(access_token):
-    """Return the Discord guild member payload for the configured guild."""
-    guild_id = getattr(settings, "DISCORD_GUILD_ID", None)
-    if not access_token or not guild_id:
+    if not access_token or not settings.DISCORD_GUILD_ID:
         return None
 
-    api_url = getattr(settings, "DISCORD_API_URL", "https://discord.com/api")
     try:
         response = httpx.get(
-            f"{api_url}{DISCORD_GUILD_MEMBER_PATH.format(guild_id=guild_id)}",
+            f"{settings.DISCORD_API_URL}{DISCORD_GUILD_MEMBER_PATH.format(guild_id=settings.DISCORD_GUILD_ID)}",
             headers={"Authorization": f"Bearer {access_token}"},
             timeout=DISCORD_API_TIMEOUT,
         )
@@ -103,14 +93,12 @@ def get_discord_guild_member(access_token):
 
 
 def get_discord_user(access_token):
-    """Return the authenticated Discord user profile."""
     if not access_token:
         return None
 
-    api_url = getattr(settings, "DISCORD_API_URL", "https://discord.com/api")
     try:
         response = httpx.get(
-            f"{api_url}{DISCORD_USER_PATH}",
+            f"{settings.DISCORD_API_URL}{DISCORD_USER_PATH}",
             headers={"Authorization": f"Bearer {access_token}"},
             timeout=DISCORD_API_TIMEOUT,
         )
