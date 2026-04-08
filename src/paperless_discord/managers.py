@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import UserManager
+from paperless_discord.models import DiscordProfile
 
 from .consts import DISCORD_FALLBACK_EMAIL_DOMAIN
 
@@ -45,7 +46,6 @@ class DiscordUserManager(UserManager):
         if changed:
             user.save(update_fields=changed)
 
-        from paperless_discord.models import DiscordProfile
         profile, _ = DiscordProfile.objects.get_or_create(user=user, defaults={"discord_id": discord_id})
         if profile.discord_id != discord_id or profile.discord_tag != discord_tag:
             profile.discord_id = discord_id
