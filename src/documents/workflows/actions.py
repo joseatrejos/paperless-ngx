@@ -4,8 +4,9 @@ import uuid
 from pathlib import Path
 
 from django.conf import settings
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, Group
 from django.utils import timezone
+from guardian.shortcuts import get_users_with_perms,assign_perm, remove_perm
 
 from documents.data_models import ConsumableDocument
 from documents.data_models import DocumentMetadataOverrides
@@ -20,6 +21,14 @@ from documents.plugins.base import StopConsumeTaskError
 from documents.signals import document_consumption_finished
 from documents.templating.workflows import parse_w_workflow_placeholders
 from documents.workflows.webhooks import send_webhook
+from documents.models import Tag
+from documents.permissions import get_groups_with_only_permission
+from documents.workflows.consts import (
+    PERM_CHANGE_DOC,
+    PERM_CHANGE_TAG,
+    PERM_VIEW_DOC, 
+    PERM_VIEW_TAG
+)
 
 logger = logging.getLogger("paperless.workflows.actions")
 
@@ -371,3 +380,93 @@ def execute_move_to_trash_action(
         raise StopConsumeTaskError(
             "Document deleted by workflow action during consumption",
         )
+
+
+def execute_propagate_tag_permissions_action(
+    document: Document,
+    logging_group: uuid.UUID | None,
+) -> None:
+    """
+    Syncs the document's permissions based on its current tags, without touching
+    manually-assigned permissions.
+
+    Strategy:
+    1. Compute the "tag universe": every user/group that has perms on ANY tag
+       in the system — these are the ones managed by this action.
+    2. Compute what the document SHOULD have from its current tags.
+    3. For users/groups in the universe: assign or revoke to match the current tags.
+    4. For users/groups NOT in the universe: leave alone (manual perms).
+
+    Tag view_tag   → document view_document
+    Tag change_tag → document change_document (+ view_document)
+    """
+
+
+    all_tags = Tag.objects.all()
+
+    # --- Build universe: all users/groups with any tag permission ---
+    universe_view_users: set[int] = set()
+    universe_change_users: set[int] = set()
+    universe_view_groups: set[int] = set()
+    universe_change_groups: set[int] = set()
+
+    for tag in all_tags:
+        for u in get_users_with_perms(tag, only_with_perms_in=[PERM_VIEW_TAG], with_group_users=False):
+            universe_view_users.add(u.pk)
+        for u in get_users_with_perms(tag, only_with_perms_in=[PERM_CHANGE_TAG], with_group_users=False):
+            universe_change_users.add(u.pk)
+        for g in get_groups_with_only_permission(tag, PERM_VIEW_TAG):
+            universe_view_groups.add(g.pk)
+        for g in get_groups_with_only_permission(tag, PERM_CHANGE_TAG):
+            universe_change_groups.add(g.pk)
+
+    # --- Build desired: what the document's current tags grant ---
+    desired_view_users: set[int] = set()
+    desired_change_users: set[int] = set()
+    desired_view_groups: set[int] = set()
+    desired_change_groups: set[int] = set()
+
+    for tag in document.tags.all():
+        for u in get_users_with_perms(tag, only_with_perms_in=[PERM_VIEW_TAG], with_group_users=False):
+            desired_view_users.add(u.pk)
+        for u in get_users_with_perms(tag, only_with_perms_in=[PERM_CHANGE_TAG], with_group_users=False):
+            desired_change_users.add(u.pk)
+        for g in get_groups_with_only_permission(tag, PERM_VIEW_TAG):
+            desired_view_groups.add(g.pk)
+        for g in get_groups_with_only_permission(tag, PERM_CHANGE_TAG):
+            desired_change_groups.add(g.pk)
+
+    # Apply: only touch users/groups that are in the universe ---
+    def _sync_users(desired: set[int], universe: set[int], perm: str) -> None:
+        for uid in universe:
+            user = User.objects.filter(pk=uid).first()
+            if user is None:
+                continue
+            if uid in desired:
+                assign_perm(perm, user, document)
+            else:
+                remove_perm(perm, user, document)
+
+    def _sync_groups(desired: set[int], universe: set[int], perm: str) -> None:
+        for gid in universe:
+            group = Group.objects.filter(pk=gid).first()
+            if group is None:
+                continue
+            if gid in desired:
+                assign_perm(perm, group, document)
+            else:
+                remove_perm(perm, group, document)
+
+    _sync_users(desired_view_users, universe_view_users, PERM_VIEW_DOC)
+    _sync_users(desired_change_users, universe_change_users, PERM_CHANGE_DOC)
+    _sync_groups(desired_view_groups, universe_view_groups, PERM_VIEW_DOC)
+    _sync_groups(desired_change_groups, universe_change_groups, PERM_CHANGE_DOC)
+
+    # change implies view
+    _sync_users(desired_change_users, universe_change_users, PERM_VIEW_DOC)
+    _sync_groups(desired_change_groups, universe_change_groups, PERM_VIEW_DOC)
+
+    logger.debug(
+        f"Propagated tag permissions to document {document.pk}",
+        extra={"group": logging_group},
+    )

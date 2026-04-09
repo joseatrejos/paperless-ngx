@@ -113,6 +113,10 @@ export const WORKFLOW_TYPE_OPTIONS = [
     name: $localize`Document Added`,
   },
   {
+    id: WorkflowTriggerType.DocumentDeleted,
+    name: $localize`Document Deleted`,
+  },
+  {
     id: WorkflowTriggerType.DocumentUpdated,
     name: $localize`Document Updated`,
   },
@@ -146,6 +150,10 @@ export const WORKFLOW_ACTION_OPTIONS = [
   {
     id: WorkflowActionType.MoveToTrash,
     name: $localize`Move to trash`,
+  },
+  {
+    id: WorkflowActionType.PropagateTagPermissions,
+    name: $localize`Propagate tag permissions`,
   },
 ]
 

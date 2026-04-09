@@ -455,6 +455,13 @@
           </div>
         </div>
       }
+      @case (WorkflowActionType.PropagateTagPermissions) {
+        <div class="row">
+          <div class="col">
+            <p class="text-muted small" i18n>The view/change permissions from every tag assigned to the document will be copied to the document itself.</p>
+          </div>
+        </div>
+      }
     }
   </div>
 </ng-template>

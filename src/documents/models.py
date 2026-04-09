@@ -1183,6 +1183,7 @@ class WorkflowTrigger(models.Model):
         DOCUMENT_ADDED = 2, _("Document Added")
         DOCUMENT_UPDATED = 3, _("Document Updated")
         SCHEDULED = 4, _("Scheduled")
+        DOCUMENT_DELETED = 5, _("Document Deleted")
 
     class DocumentSourceChoices(models.IntegerChoices):
         CONSUME_FOLDER = DocumentSource.ConsumeFolder.value, _("Consume Folder")
@@ -1506,6 +1507,10 @@ class WorkflowAction(models.Model):
         MOVE_TO_TRASH = (
             6,
             _("Move to trash"),
+        )
+        PROPAGATE_TAG_PERMISSIONS = (
+            7,
+            _("Propagate tag permissions"),
         )
 
     type = models.PositiveSmallIntegerField(
