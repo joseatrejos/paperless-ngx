@@ -56,6 +56,7 @@ from documents.workflows.actions import build_workflow_action_context
 from documents.workflows.actions import execute_email_action
 from documents.workflows.actions import execute_move_to_trash_action
 from documents.workflows.actions import execute_password_removal_action
+from documents.workflows.actions import execute_propagate_tag_permissions_action
 from documents.workflows.actions import execute_webhook_action
 from documents.workflows.mutations import apply_assignment_to_document
 from documents.workflows.mutations import apply_assignment_to_overrides
@@ -827,6 +828,17 @@ def run_workflows_updated(
     )
 
 
+def run_workflows_deleted(
+    sender,
+    instance: Document,
+    **kwargs,
+) -> None:
+    run_workflows(
+        trigger_type=WorkflowTrigger.WorkflowTriggerType.DOCUMENT_DELETED,
+        document=instance,
+    )
+
+
 def send_websocket_document_updated(
     sender,
     document: Document,
@@ -889,27 +901,31 @@ def run_workflows(
         if not use_overrides:
             if TYPE_CHECKING:
                 assert isinstance(document, Document)
-            try:
-                # This can be called from bulk_update_documents, which may be running multiple times
-                # Refresh this so the matching data is fresh and instance fields are re-freshed
-                # Otherwise, this instance might be behind and overwrite the work another process did
-                document.refresh_from_db()
-                doc_tag_ids = list(document.tags.values_list("pk", flat=True))
-            except Document.DoesNotExist:
-                # Document was hard deleted by a previous workflow or another process
-                logger.info(
-                    "Document no longer exists, skipping remaining workflows",
-                    extra={"group": logging_group},
-                )
-                break
+            if trigger_type == WorkflowTrigger.WorkflowTriggerType.DOCUMENT_DELETED:
+                # Document was soft-deleted (moved to trash); skip refresh and is_deleted guard below
+                doc_tag_ids = []
+            else:
+                try:
+                    # This can be called from bulk_update_documents, which may be running multiple times
+                    # Refresh this so the matching data is fresh and instance fields are re-freshed
+                    # Otherwise, this instance might be behind and overwrite the work another process did
+                    document.refresh_from_db()
+                    doc_tag_ids = list(document.tags.values_list("pk", flat=True))
+                except Document.DoesNotExist:
+                    # Document was hard deleted by a previous workflow or another process
+                    logger.info(
+                        "Document no longer exists, skipping remaining workflows",
+                        extra={"group": logging_group},
+                    )
+                    break
 
-            # Check if document was soft deleted (moved to trash)
-            if document.is_deleted:
-                logger.info(
-                    "Document was moved to trash, skipping remaining workflows",
-                    extra={"group": logging_group},
-                )
-                break
+                # Check if document was soft deleted (moved to trash)
+                if document.is_deleted:
+                    logger.info(
+                        "Document was moved to trash, skipping remaining workflows",
+                        extra={"group": logging_group},
+                    )
+                    break
 
         if matching.document_matches_workflow(document, workflow, trigger_type):
             action: WorkflowAction
@@ -959,8 +975,11 @@ def run_workflows(
                     execute_password_removal_action(action, document, logging_group)
                 elif action.type == WorkflowAction.WorkflowActionType.MOVE_TO_TRASH:
                     has_move_to_trash_action = True
+                elif action.type == WorkflowAction.WorkflowActionType.PROPAGATE_TAG_PERMISSIONS:
+                    if isinstance(document, Document):
+                        execute_propagate_tag_permissions_action(document, logging_group)
 
-            if not use_overrides:
+            if not use_overrides and trigger_type != WorkflowTrigger.WorkflowTriggerType.DOCUMENT_DELETED:
                 # limit title to 128 characters
                 document.title = document.title[:128]
                 # Save only the fields that workflow actions can set directly.
@@ -987,10 +1006,10 @@ def run_workflows(
             WorkflowRun.objects.create(
                 workflow=workflow,
                 type=trigger_type,
-                document=document if not use_overrides else None,
+                document=document if (not use_overrides and trigger_type != WorkflowTrigger.WorkflowTriggerType.DOCUMENT_DELETED) else None,
             )
 
-            if has_move_to_trash_action:
+            if has_move_to_trash_action and trigger_type != WorkflowTrigger.WorkflowTriggerType.DOCUMENT_DELETED:
                 execute_move_to_trash_action(action, document, logging_group)
 
     if use_overrides:
