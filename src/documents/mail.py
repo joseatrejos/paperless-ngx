@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from email import message_from_bytes
+from email.mime.image import MIMEImage
 from pathlib import Path
 
 from django.conf import settings
 from django.core.mail import EmailMessage
+from django.core.mail import EmailMultiAlternatives
 from filelock import FileLock
 
 
@@ -16,31 +18,60 @@ class EmailAttachment:
     friendly_name: str
 
 
+@dataclass(frozen=True)
+class EmailInlineImage:
+    content_id: str
+    data: bytes
+    subtype: str  # e.g. "png", "jpeg", "svg+xml"
+
+
 def send_email(
     subject: str,
     body: str,
     to: list[str],
     attachments: list[EmailAttachment],
+    html_message: str | None = None,
+    inline_images: list[EmailInlineImage] | None = None,
 ) -> int:
     """
-    Send an email with attachments.
+    Send an email with optional HTML alternative, inline images (CID), and attachments.
 
     Args:
         subject: Email subject
-        body: Email body text
+        body: Plain-text email body (used as fallback when html_message is provided)
         to: List of recipient email addresses
         attachments: List of attachments
+        html_message: Optional HTML body; when provided the email is sent as multipart/alternative
+        inline_images: Optional list of images to embed inline via Content-ID (cid:)
 
     Returns:
         Number of emails sent
 
     TODO: re-evaluate this pending https://code.djangoproject.com/ticket/35581 / https://github.com/django/django/pull/18966
     """
-    email = EmailMessage(
-        subject=subject,
-        body=body,
-        to=to,
-    )
+    if html_message:
+        email: EmailMessage = EmailMultiAlternatives(
+            subject=subject,
+            body=body,
+            to=to,
+        )
+        email.attach_alternative(html_message, "text/html")
+        if inline_images:
+            # multipart/related allows HTML to reference inline images via cid:
+            email.mixed_subtype = "related"
+            for img in inline_images:
+                mime_img = MIMEImage(img.data, _subtype=img.subtype)
+                mime_img.add_header("Content-ID", f"<{img.content_id}>")
+                mime_img.add_header(
+                    "Content-Disposition", "inline", filename=f"{img.content_id}.{img.subtype}"
+                )
+                email.attach(mime_img)
+    else:
+        email = EmailMessage(
+            subject=subject,
+            body=body,
+            to=to,
+        )
 
     used_filenames: set[str] = set()
 
