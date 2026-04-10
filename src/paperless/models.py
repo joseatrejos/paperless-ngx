@@ -202,6 +202,13 @@ class ApplicationConfiguration(AbstractSingletonModel):
         upload_to="logo/",
     )
 
+    app_theme_color = models.CharField(
+        verbose_name=_("Application theme color"),
+        null=True,
+        blank=True,
+        max_length=16,
+    )
+
     """
     Settings for the barcode scanner
     """

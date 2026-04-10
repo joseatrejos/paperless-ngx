@@ -174,6 +174,7 @@ class GeneralConfig(BaseConfig):
 
     app_title: str = dataclasses.field(init=False)
     app_logo: str = dataclasses.field(init=False)
+    app_theme_color: str = dataclasses.field(init=False)
     documenso_team_slug: str = dataclasses.field(init=False)
 
     def __post_init__(self) -> None:
@@ -181,6 +182,7 @@ class GeneralConfig(BaseConfig):
 
         self.app_title = app_config.app_title or None
         self.app_logo = app_config.app_logo.url if app_config.app_logo else None
+        self.app_theme_color = app_config.app_theme_color or None
         self.documenso_team_slug = app_config.documenso_team_slug or None
 
 

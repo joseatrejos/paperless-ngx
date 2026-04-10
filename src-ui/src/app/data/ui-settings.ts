@@ -30,6 +30,7 @@ export const SETTINGS_KEYS = {
   LANGUAGE: 'language',
   APP_LOGO: 'app_logo',
   APP_TITLE: 'app_title',
+  APP_THEME_COLOR: 'app_theme_color',
   // maintain old general-settings: for backwards compatibility
   BULK_EDIT_CONFIRMATION_DIALOGS:
     'general-settings:bulk-edit:confirmation-dialogs',
@@ -285,6 +286,11 @@ export const SETTINGS: UiSetting[] = [
   },
   {
     key: SETTINGS_KEYS.APP_TITLE,
+    type: 'string',
+    default: '',
+  },
+  {
+    key: SETTINGS_KEYS.APP_THEME_COLOR,
     type: 'string',
     default: '',
   },

@@ -125,20 +125,6 @@
                 <pngx-input-check i18n-title title="Invert thumbnails in dark mode" formControlName="darkModeInvertThumbs"></pngx-input-check>
               </div>
             </div>
-
-            <div class="row mb-3">
-              <div class="col-md-3 col-form-label pt-0">
-                <span i18n>Theme Color</span>
-              </div>
-              <div class="col col-md-4">
-                <pngx-input-color i18n-title formControlName="themeColor" [error]="error?.color"></pngx-input-color>
-              </div>
-              <div class="col-2">
-                <button class="btn btn-link btn-sm pt-2 ps-0" [disabled]="!this.settingsForm.get('themeColor').value" (click)="clearThemeColor()">
-                  <i-bs width="1em" height="1em" name="x"></i-bs><ng-container i18n>Reset</ng-container>
-                </button>
-              </div>
-            </div>
           </div>
           <div class="col-xl-6 ps-xl-5">
             <h5 class="mt-3 mt-md-0" i18n>Global search</h5>

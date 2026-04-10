@@ -10,7 +10,9 @@ from guardian.shortcuts import get_users_with_perms,assign_perm, remove_perm
 
 from documents.data_models import ConsumableDocument
 from documents.data_models import DocumentMetadataOverrides
+from documents.consts import EMAIL_CTX_DOC_URL
 from documents.mail import EmailAttachment
+from documents.mail import build_system_themed_email
 from documents.mail import send_email
 from documents.models import Correspondent
 from documents.models import Document
@@ -179,11 +181,19 @@ def execute_email_action(
             if attachment:
                 attachments = [attachment]
 
+        html_message, inline_images = build_system_themed_email(
+            subject=subject,
+            body=body,
+            doc_url=context.get(EMAIL_CTX_DOC_URL, ""),
+        )
+
         n_messages = send_email(
             subject=subject,
             body=body,
             to=action.email.to.split(","),
             attachments=attachments,
+            html_message=html_message,
+            inline_images=inline_images,
         )
         logger.debug(
             f"Sent {n_messages} notification email(s) to {action.email.to}",
