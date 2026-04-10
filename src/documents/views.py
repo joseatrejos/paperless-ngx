@@ -119,7 +119,10 @@ from documents.conditionals import preview_last_modified
 from documents.conditionals import suggestions_etag
 from documents.conditionals import suggestions_last_modified
 from documents.conditionals import thumbnail_last_modified
-from documents.consts import UI_SETTING_APP_THEME_COLOR
+from documents.consts import (
+    API_KEY_MESSAGE,
+    UI_SETTING_APP_THEME_COLOR
+)
 from documents.data_models import ConsumableDocument
 from documents.data_models import DocumentMetadataOverrides
 from documents.data_models import DocumentSource
@@ -1643,7 +1646,7 @@ class DocumentViewSet(
         addresses = validated_data.get("addresses").split(",")
         addresses = [addr.strip() for addr in addresses]
         subject = validated_data.get("subject")
-        message = validated_data.get("message") or ""
+        message = validated_data.get(API_KEY_MESSAGE,"")
         use_archive_version = validated_data.get("use_archive_version", True)
 
         documents = Document.objects.select_related("owner").filter(pk__in=document_ids)
@@ -1699,7 +1702,7 @@ class DocumentViewSet(
             logger.debug(
                 f"Sent documents {[doc.id for doc in documents]} via email to {addresses}",
             )
-            return Response({"message": "Email sent"})
+            return Response({API_KEY_MESSAGE: "Email sent"})
         except Exception as e:
             logger.warning(f"An error occurred emailing documents: {e!s}")
             return HttpResponseServerError(

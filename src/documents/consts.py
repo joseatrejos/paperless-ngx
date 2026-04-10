@@ -19,3 +19,6 @@ EMAIL_CTX_PRIMARY_COLOR = "primary_color"
 
 # Global UI settings keys
 UI_SETTING_APP_THEME_COLOR = "app_theme_color"
+
+# Shared API keys
+API_KEY_MESSAGE = "message"
