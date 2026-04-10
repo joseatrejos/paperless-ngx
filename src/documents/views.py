@@ -119,6 +119,7 @@ from documents.conditionals import preview_last_modified
 from documents.conditionals import suggestions_etag
 from documents.conditionals import suggestions_last_modified
 from documents.conditionals import thumbnail_last_modified
+from documents.consts import UI_SETTING_APP_THEME_COLOR
 from documents.data_models import ConsumableDocument
 from documents.data_models import DocumentMetadataOverrides
 from documents.data_models import DocumentSource
@@ -3532,13 +3533,7 @@ class UiSettingsView(GenericAPIView):
         ui_settings["app_logo"] = settings.APP_LOGO
         if general_config.app_logo is not None and len(general_config.app_logo) > 0:
             ui_settings["app_logo"] = general_config.app_logo
-        legacy_user_theme = ""
-        for key in ("app_theme_color", "general-settings:theme:color"):
-            value = ui_settings.get(key)
-            if isinstance(value, str) and value.strip():
-                legacy_user_theme = value.strip()
-                break
-        ui_settings["app_theme_color"] = general_config.app_theme_color or legacy_user_theme
+        ui_settings[UI_SETTING_APP_THEME_COLOR] = general_config.app_theme_color or ""
 
         ui_settings["auditlog_enabled"] = settings.AUDIT_LOG_ENABLED
 

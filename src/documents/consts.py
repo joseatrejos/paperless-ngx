@@ -16,3 +16,6 @@ EMAIL_CTX_DOC_URL = "doc_url"
 EMAIL_CTX_APP_TITLE = "app_title"
 EMAIL_CTX_LOGO_URL = "logo_url"
 EMAIL_CTX_PRIMARY_COLOR = "primary_color"
+
+# Global UI settings keys
+UI_SETTING_APP_THEME_COLOR = "app_theme_color"
