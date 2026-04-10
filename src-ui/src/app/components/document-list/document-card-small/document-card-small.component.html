@@ -149,6 +149,13 @@
             <a [href]="getDownloadUrl()" class="btn btn-sm btn-outline-secondary" title="Download" i18n-title (click)="$event.stopPropagation()">
               <i-bs name="download"></i-bs>
             </a>
+            <button class="btn btn-sm btn-outline-secondary" title="Sign with Documenso" i18n-title (click)="sendToDocumenso($event)" [disabled]="isSendingToDocumenso">
+              @if (isSendingToDocumenso) {
+                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+              } @else {
+                <i-bs name="pen"></i-bs>
+              }
+            </button>
           } @else {
             <button class="btn btn-sm btn-outline-secondary placeholder bg-secondary"></button>
             <button class="btn btn-sm btn-outline-secondary placeholder bg-secondary"></button>

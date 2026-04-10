@@ -107,6 +107,7 @@ export class BulkEditorComponent
   storagePathDocumentCounts: SelectionDataItem[]
   customFieldDocumentCounts: SelectionDataItem[]
   awaitingDownload: boolean
+  isSendingToDocumenso: boolean = false
 
   unsubscribeNotifier: Subject<any> = new Subject()
 
@@ -1018,6 +1019,38 @@ export class BulkEditorComponent
 
   public get emailEnabled(): boolean {
     return this.settings.get(SETTINGS_KEYS.EMAIL_ENABLED)
+  }
+
+  public get documensoEnabled(): boolean {
+    return this.settings.get(SETTINGS_KEYS.DOCUMENSO_ENABLED)
+  }
+
+  public sendToDocumenso() {
+    if (!this.documensoEnabled) {
+      this.toastService.showError(
+        $localize`Documenso is not configured. Set PAPERLESS_DOCUMENSO_URL and PAPERLESS_DOCUMENSO_TOKEN in paperless.conf.`
+      )
+      return
+    }
+    const ids = Array.from(this.list.selected)
+    this.isSendingToDocumenso = true
+    this.toastService.showInfo($localize`Redirecting to Documenso...`)
+    this.documentService
+      .sendToDocumenso(ids)
+      .pipe(first())
+      .subscribe({
+        next: (res) => {
+          this.isSendingToDocumenso = false
+          window.open(res.url, '_blank')
+        },
+        error: (err) => {
+          this.isSendingToDocumenso = false
+          this.toastService.showError(
+            $localize`Error sending documents to Documenso`,
+            err
+          )
+        },
+      })
   }
 
   createShareLinkBundle() {
