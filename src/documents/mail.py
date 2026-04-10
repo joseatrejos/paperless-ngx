@@ -3,12 +3,17 @@ from __future__ import annotations
 from dataclasses import dataclass
 from email import message_from_bytes
 from email.mime.image import MIMEImage
+import mimetypes
 from pathlib import Path
 
 from django.conf import settings
 from django.core.mail import EmailMessage
 from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
 from filelock import FileLock
+
+from paperless.config import GeneralConfig
+from paperless.models import ApplicationConfiguration
 
 
 @dataclass(frozen=True)
@@ -23,6 +28,87 @@ class EmailInlineImage:
     content_id: str
     data: bytes
     subtype: str  # e.g. "png", "jpeg", "svg+xml"
+
+
+def build_system_themed_email(
+    *,
+    subject: str,
+    body: str,
+    doc_url: str = "",
+) -> tuple[str, list[EmailInlineImage] | None]:
+    """Render the standard branded HTML email using system-wide configuration."""
+    paperless_default_color = "#17541f"
+    email_logo_cid = "email_logo"
+    legacy_theme_keys = ("app_theme_color", "general-settings:theme:color")
+
+    def _get_legacy_theme_color() -> str | None:
+        try:
+            # Import lazily to avoid circular imports during Django app loading.
+            from documents.models import UiSettings
+
+            for user_settings in UiSettings.objects.exclude(settings=None):
+                settings_json = user_settings.settings
+                if not isinstance(settings_json, dict):
+                    continue
+
+                for key in legacy_theme_keys:
+                    value = settings_json.get(key)
+                    if isinstance(value, str) and value.strip():
+                        return value.strip()
+        except Exception:
+            return None
+
+        return None
+
+    try:
+        general_config = GeneralConfig()
+        theme_color = (
+            general_config.app_theme_color
+            or _get_legacy_theme_color()
+            or paperless_default_color
+        )
+        app_title = general_config.app_title or settings.APP_TITLE or "Paperless-ngx"
+    except Exception:
+        theme_color = _get_legacy_theme_color() or paperless_default_color
+        app_title = settings.APP_TITLE or "Paperless-ngx"
+
+    inline_images: list[EmailInlineImage] = []
+    logo_src: str | None = None
+
+    try:
+        app_cfg = ApplicationConfiguration.objects.first()
+        if app_cfg and app_cfg.app_logo:
+            mime_type, _ = mimetypes.guess_type(app_cfg.app_logo.name)
+            mime_type = mime_type or "image/png"
+            subtype = mime_type.split("/", 1)[1]
+            logo_bytes = app_cfg.app_logo.read()
+            inline_images = [
+                EmailInlineImage(
+                    content_id=email_logo_cid,
+                    data=logo_bytes,
+                    subtype=subtype,
+                )
+            ]
+            logo_src = f"cid:{email_logo_cid}"
+    except Exception:
+        pass
+
+    if not logo_src:
+        logo_src = settings.APP_LOGO
+
+    html_message = render_to_string(
+        "account/email/workflow_notification.html",
+        {
+            "subject": subject,
+            "body": body,
+            "doc_url": doc_url,
+            "app_title": app_title,
+            "logo_url": logo_src,
+            "primary_color": theme_color,
+        },
+    )
+
+    return html_message, (inline_images or None)
 
 
 def send_email(

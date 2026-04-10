@@ -45,6 +45,7 @@ export enum ConfigOptionType {
   JSON = 'json',
   File = 'file',
   Password = 'password',
+  Color = 'color',
 }
 
 export const ConfigCategory = {
@@ -193,6 +194,14 @@ export const PaperlessConfigOptions: ConfigOption[] = [
     type: ConfigOptionType.String,
     config_key: 'PAPERLESS_APP_TITLE',
     category: ConfigCategory.General,
+  },
+  {
+    key: 'app_theme_color',
+    title: $localize`Theme Color`,
+    type: ConfigOptionType.Color,
+    config_key: 'PAPERLESS_APP_THEME_COLOR',
+    category: ConfigCategory.General,
+    note: $localize`System-wide theme color applied to all users. Leave empty to use the default Paperless green.`,
   },
   {
     key: 'barcodes_enabled',
@@ -348,6 +357,7 @@ export interface PaperlessConfig extends ObjectWithId {
   user_args: object
   app_logo: string
   app_title: string
+  app_theme_color: string
   barcodes_enabled: boolean
   barcode_enable_tiff_support: boolean
   barcode_string: string

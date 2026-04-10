@@ -136,6 +136,7 @@ from documents.filters import ShareLinkFilterSet
 from documents.filters import StoragePathFilterSet
 from documents.filters import TagFilterSet
 from documents.mail import EmailAttachment
+from documents.mail import build_system_themed_email
 from documents.mail import send_email
 from documents.matching import match_correspondents
 from documents.matching import match_document_types
@@ -1641,7 +1642,7 @@ class DocumentViewSet(
         addresses = validated_data.get("addresses").split(",")
         addresses = [addr.strip() for addr in addresses]
         subject = validated_data.get("subject")
-        message = validated_data.get("message")
+        message = validated_data.get("message") or ""
         use_archive_version = validated_data.get("use_archive_version", True)
 
         documents = Document.objects.select_related("owner").filter(pk__in=document_ids)
@@ -1671,11 +1672,27 @@ class DocumentViewSet(
                     ),
                 )
 
+            doc_url = ""
+            if len(document_ids) == 1:
+                first_doc = documents.first()
+                if first_doc is not None:
+                    doc_url = (
+                        f"{settings.PAPERLESS_URL}{settings.BASE_URL}documents/{first_doc.pk}/"
+                    )
+
+            html_message, inline_images = build_system_themed_email(
+                subject=subject,
+                body=message,
+                doc_url=doc_url,
+            )
+
             send_email(
                 subject=subject,
                 body=message,
                 to=addresses,
                 attachments=attachments,
+                html_message=html_message,
+                inline_images=inline_images,
             )
 
             logger.debug(
@@ -3515,6 +3532,13 @@ class UiSettingsView(GenericAPIView):
         ui_settings["app_logo"] = settings.APP_LOGO
         if general_config.app_logo is not None and len(general_config.app_logo) > 0:
             ui_settings["app_logo"] = general_config.app_logo
+        legacy_user_theme = ""
+        for key in ("app_theme_color", "general-settings:theme:color"):
+            value = ui_settings.get(key)
+            if isinstance(value, str) and value.strip():
+                legacy_user_theme = value.strip()
+                break
+        ui_settings["app_theme_color"] = general_config.app_theme_color or legacy_user_theme
 
         ui_settings["auditlog_enabled"] = settings.AUDIT_LOG_ENABLED
 

@@ -451,7 +451,7 @@ export class SettingsService {
   ): void {
     darkModeUseSystem ??= this.get(SETTINGS_KEYS.DARK_MODE_USE_SYSTEM)
     darkModeEnabled ??= this.get(SETTINGS_KEYS.DARK_MODE_ENABLED)
-    themeColor ??= this.get(SETTINGS_KEYS.THEME_COLOR)
+    themeColor ??= this.get(SETTINGS_KEYS.APP_THEME_COLOR)
 
     if (darkModeUseSystem) {
       this._renderer.setAttribute(

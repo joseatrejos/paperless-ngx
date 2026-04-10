@@ -1,19 +1,17 @@
 import logging
-import mimetypes
 import re
 import uuid
 from pathlib import Path
 
 from django.conf import settings
 from django.contrib.auth.models import User, Group
-from django.template.loader import render_to_string
 from django.utils import timezone
 from guardian.shortcuts import get_users_with_perms,assign_perm, remove_perm
 
 from documents.data_models import ConsumableDocument
 from documents.data_models import DocumentMetadataOverrides
 from documents.mail import EmailAttachment
-from documents.mail import EmailInlineImage
+from documents.mail import build_system_themed_email
 from documents.mail import send_email
 from documents.models import Correspondent
 from documents.models import Document
@@ -32,7 +30,6 @@ from documents.workflows.consts import (
     PERM_VIEW_DOC, 
     PERM_VIEW_TAG
 )
-from paperless.models import ApplicationConfiguration
 
 logger = logging.getLogger("paperless.workflows.actions")
 
@@ -183,49 +180,10 @@ def execute_email_action(
             if attachment:
                 attachments = [attachment]
 
-        # Read theme color from the first superuser's UiSettings; fall back to Paperless green.
-        _PAPERLESS_DEFAULT_COLOR = "#17541f"
-        try:
-            superuser = User.objects.filter(is_superuser=True).order_by("pk").first()
-            ui_cfg = (
-                getattr(superuser, "ui_settings", None).settings
-                if superuser
-                else None
-            )
-            theme_color = (
-                (ui_cfg or {}).get("general-settings:theme:color") or _PAPERLESS_DEFAULT_COLOR
-            )
-        except Exception:
-            theme_color = _PAPERLESS_DEFAULT_COLOR
-
-        # Embed logo inline via CID so email clients display it without blocking.
-        _EMAIL_LOGO_CID = "email_logo"
-        inline_images: list[EmailInlineImage] = []
-        logo_src: str | None = None
-        try:
-            _app_cfg = ApplicationConfiguration.objects.first()
-            if _app_cfg and _app_cfg.app_logo:
-                _mime, _ = mimetypes.guess_type(_app_cfg.app_logo.name)
-                _mime = _mime or "image/png"
-                _subtype = _mime.split("/", 1)[1]  # e.g. "png", "jpeg"
-                _logo_bytes = _app_cfg.app_logo.read()
-                inline_images = [EmailInlineImage(content_id=_EMAIL_LOGO_CID, data=_logo_bytes, subtype=_subtype)]
-                logo_src = f"cid:{_EMAIL_LOGO_CID}"
-        except Exception:
-            pass
-        if not logo_src:
-            logo_src = settings.APP_LOGO  # absolute URL from env var as last resort
-
-        html_message = render_to_string(
-            "account/email/workflow_notification.html",
-            {
-                "subject": subject,
-                "body": body,
-                "doc_url": context.get("doc_url", ""),
-                "app_title": settings.APP_TITLE or "Paperless-ngx",
-                "logo_url": logo_src,
-                "primary_color": theme_color,
-            },
+        html_message, inline_images = build_system_themed_email(
+            subject=subject,
+            body=body,
+            doc_url=context.get("doc_url", ""),
         )
 
         n_messages = send_email(
@@ -234,7 +192,7 @@ def execute_email_action(
             to=action.email.to.split(","),
             attachments=attachments,
             html_message=html_message,
-            inline_images=inline_images or None,
+            inline_images=inline_images,
         )
         logger.debug(
             f"Sent {n_messages} notification email(s) to {action.email.to}",

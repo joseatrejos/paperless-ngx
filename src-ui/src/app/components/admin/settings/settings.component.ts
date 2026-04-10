@@ -59,7 +59,6 @@ import { SystemStatusService } from 'src/app/services/system-status.service'
 import { Toast, ToastService } from 'src/app/services/toast.service'
 import { locationReload } from 'src/app/utils/navigation'
 import { CheckComponent } from '../../common/input/check/check.component'
-import { ColorComponent } from '../../common/input/color/color.component'
 import { PermissionsGroupComponent } from '../../common/input/permissions/permissions-group/permissions-group.component'
 import { PermissionsUserComponent } from '../../common/input/permissions/permissions-user/permissions-user.component'
 import { SelectComponent } from '../../common/input/select/select.component'
@@ -108,7 +107,6 @@ const documentDetailFieldOptions = [
   imports: [
     PageHeaderComponent,
     CheckComponent,
-    ColorComponent,
     SelectComponent,
     PermissionsGroupComponent,
     PermissionsUserComponent,
@@ -151,7 +149,6 @@ export class SettingsComponent
     darkModeUseSystem: new FormControl(null),
     darkModeEnabled: new FormControl(null),
     darkModeInvertThumbs: new FormControl(null),
-    themeColor: new FormControl(null),
     displayLanguage: new FormControl(null),
     dateLocale: new FormControl(null),
     dateFormat: new FormControl(null),
@@ -311,7 +308,6 @@ export class SettingsComponent
       darkModeInvertThumbs: this.settings.get(
         SETTINGS_KEYS.DARK_MODE_THUMB_INVERTED
       ),
-      themeColor: this.settings.get(SETTINGS_KEYS.THEME_COLOR),
       useNativePdfViewer: this.settings.get(
         SETTINGS_KEYS.USE_NATIVE_PDF_VIEWER
       ),
@@ -419,8 +415,7 @@ export class SettingsComponent
       .subscribe(() => {
         this.settings.updateAppearanceSettings(
           this.settingsForm.get('darkModeUseSystem').value,
-          this.settingsForm.get('darkModeEnabled').value,
-          this.settingsForm.get('themeColor').value
+          this.settingsForm.get('darkModeEnabled').value
         )
       })
 
@@ -477,10 +472,6 @@ export class SettingsComponent
     this.settings.set(
       SETTINGS_KEYS.DARK_MODE_THUMB_INVERTED,
       (this.settingsForm.value.darkModeInvertThumbs == true).toString()
-    )
-    this.settings.set(
-      SETTINGS_KEYS.THEME_COLOR,
-      this.settingsForm.value.themeColor
     )
     this.settings.set(
       SETTINGS_KEYS.USE_NATIVE_PDF_VIEWER,
@@ -621,10 +612,6 @@ export class SettingsComponent
 
   reset() {
     this.settingsForm.patchValue(this.store.getValue())
-  }
-
-  clearThemeColor() {
-    this.settingsForm.get('themeColor').patchValue('')
   }
 
   isDocumentDetailFieldShown(fieldId: string): boolean {
