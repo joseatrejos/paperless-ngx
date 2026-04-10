@@ -53,6 +53,7 @@ export const ConfigCategory = {
   OCR: $localize`OCR Settings`,
   Barcode: $localize`Barcode Settings`,
   AI: $localize`AI Settings`,
+  Documenso: $localize`Documenso`,
 }
 
 export const LLMEmbeddingBackendConfig = {
@@ -339,6 +340,14 @@ export const PaperlessConfigOptions: ConfigOption[] = [
     config_key: 'PAPERLESS_AI_LLM_ENDPOINT',
     category: ConfigCategory.AI,
   },
+  {
+    key: 'documenso_team_slug',
+    title: $localize`Documenso Team Slug`,
+    type: ConfigOptionType.String,
+    config_key: 'PAPERLESS_DOCUMENSO_TEAM_SLUG',
+    category: ConfigCategory.Documenso,
+    note: $localize`The team slug from your Documenso URL (e.g. personal_xxxxxxxx). Enables direct link to the document editor after sending.`,
+  },
 ]
 
 export interface PaperlessConfig extends ObjectWithId {
@@ -377,4 +386,5 @@ export interface PaperlessConfig extends ObjectWithId {
   llm_model: string
   llm_api_key: string
   llm_endpoint: string
+  documenso_team_slug: string
 }

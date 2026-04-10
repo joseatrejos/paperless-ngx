@@ -398,6 +398,13 @@ export class DocumentService extends AbstractPaperlessService<Document> {
     )
   }
 
+  sendToDocumenso(ids: number[]): Observable<{ url: string }> {
+    return this.http.post<{ url: string }>(
+      this.getResourceUrl(null, 'documenso_send'),
+      { document_ids: ids }
+    )
+  }
+
   getSuggestions(id: number): Observable<DocumentSuggestions> {
     return this.http.get<DocumentSuggestions>(
       this.getResourceUrl(id, 'suggestions')

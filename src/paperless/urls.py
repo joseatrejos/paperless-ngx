@@ -17,6 +17,7 @@ from rest_framework.routers import DefaultRouter
 
 from documents.views import BulkDownloadView
 from documents.views import BulkEditObjectsView
+from documents.views import DocumensoSendView
 from documents.views import BulkEditView
 from documents.views import ChatStreamingView
 from documents.views import CorrespondentViewSet
@@ -173,6 +174,11 @@ urlpatterns = [
                                 "^bulk_download/",
                                 BulkDownloadView.as_view(),
                                 name="bulk_download",
+                            ),
+                            re_path(
+                                "^documenso_send/",
+                                DocumensoSendView.as_view(),
+                                name="documenso_send",
                             ),
                             re_path(
                                 "^selection_data/",

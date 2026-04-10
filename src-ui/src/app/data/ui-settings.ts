@@ -94,6 +94,7 @@ export const SETTINGS_KEYS = {
   GMAIL_OAUTH_URL: 'gmail_oauth_url',
   OUTLOOK_OAUTH_URL: 'outlook_oauth_url',
   EMAIL_ENABLED: 'email_enabled',
+  DOCUMENSO_ENABLED: 'documenso_enabled',
   AI_ENABLED: 'ai_enabled',
 }
 
@@ -335,6 +336,11 @@ export const SETTINGS: UiSetting[] = [
   },
   {
     key: SETTINGS_KEYS.EMAIL_ENABLED,
+    type: 'boolean',
+    default: false,
+  },
+  {
+    key: SETTINGS_KEYS.DOCUMENSO_ENABLED,
     type: 'boolean',
     default: false,
   },
