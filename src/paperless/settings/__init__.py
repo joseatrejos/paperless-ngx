@@ -1037,7 +1037,7 @@ ENABLE_UPDATE_CHECK = os.getenv("PAPERLESS_ENABLE_UPDATE_CHECK", "default")
 if ENABLE_UPDATE_CHECK != "default":
     ENABLE_UPDATE_CHECK = get_bool_from_env("PAPERLESS_ENABLE_UPDATE_CHECK")
 
-APP_TITLE = os.getenv("PAPERLESS_APP_TITLE", None)
+APP_TITLE = os.getenv("PAPERLESS_APP_TITLE", "Paperless-ngx")
 APP_LOGO = os.getenv("PAPERLESS_APP_LOGO", None)
 
 ###############################################################################
