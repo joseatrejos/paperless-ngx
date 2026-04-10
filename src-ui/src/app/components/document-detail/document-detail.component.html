@@ -103,8 +103,13 @@
           <i-bs name="envelope" class="me-1"></i-bs><span i18n>Email</span>
         </button>
       }
-      <button ngbDropdownItem (click)="sendToDocumenso()">
-        <i-bs name="pen" class="me-1"></i-bs><span i18n>Sign with Documenso</span>
+      <button ngbDropdownItem (click)="sendToDocumenso()" [disabled]="isSendingToDocumenso">
+        @if (isSendingToDocumenso) {
+          <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+          <span i18n>Redirecting...</span>
+        } @else {
+          <i-bs name="pen" class="me-1"></i-bs><span i18n>Sign with Documenso</span>
+        }
       </button>
     </div>
   </div>

@@ -120,6 +120,35 @@ from documents.conditionals import preview_last_modified
 from documents.conditionals import suggestions_etag
 from documents.conditionals import suggestions_last_modified
 from documents.conditionals import thumbnail_last_modified
+from documents.consts import (
+    DOCUMENSO_API_ERROR,
+    DOCUMENSO_API_ERROR_LOG,
+    DOCUMENSO_AUTH_HEADER,
+    DOCUMENSO_CREATE_ENVELOPE_PATH,
+    DOCUMENSO_DOCUMENT_EDIT_PATH,
+    DOCUMENSO_DOCUMENT_IDS_KEY,
+    DOCUMENSO_DOCUMENTS_LABEL,
+    DOCUMENSO_DOCUMENTS_NOT_FOUND,
+    DOCUMENSO_FILES_FIELD,
+    DOCUMENSO_INSUFFICIENT_PERMISSIONS,
+    DOCUMENSO_JSON_CONTENT_TYPE,
+    DOCUMENSO_NO_DOCUMENT_ID,
+    DOCUMENSO_NOT_CONFIGURED,
+    DOCUMENSO_PAYLOAD_FIELD,
+    DOCUMENSO_PAYLOAD_TYPE,
+    DOCUMENSO_PDF_CONTENT_TYPE,
+    DOCUMENSO_RESPONSE_DOCUMENT_ID_KEY,
+    DOCUMENSO_RESPONSE_ID_KEY,
+    DOCUMENSO_RESPONSE_MISSING_DOCUMENT_ID_LOG,
+    DOCUMENSO_RESPONSE_URL_KEY,
+    DOCUMENSO_SEND_ERROR,
+    DOCUMENSO_SEND_EXCEPTION_LOG,
+    DOCUMENSO_TITLE_KEY,
+    DOCUMENSO_TYPE_KEY,
+    DOCUMENSO_VIEW_DOCUMENT_PERMISSION,
+    DOCUMENSO_DOCUMENT_IDS_REQUIRED,
+    DOCUMENSO_DOCUMENTS_PATH,
+    )
 from documents.data_models import ConsumableDocument
 from documents.data_models import DocumentMetadataOverrides
 from documents.data_models import DocumentSource
@@ -3428,24 +3457,28 @@ class DocumensoSendView(GenericAPIView):
 
     def post(self, request, format=None):
         if not settings.DOCUMENSO_ENABLED:
-            return HttpResponseBadRequest("Documenso integration is not configured")
+            return HttpResponseBadRequest(DOCUMENSO_NOT_CONFIGURED)
 
-        document_ids = request.data.get("document_ids")
+        document_ids = request.data.get(DOCUMENSO_DOCUMENT_IDS_KEY)
         general_config = GeneralConfig()
-        
+
         if not document_ids or not isinstance(document_ids, list):
-            return HttpResponseBadRequest("document_ids must be a non-empty list")
+            return HttpResponseBadRequest(DOCUMENSO_DOCUMENT_IDS_REQUIRED)
 
         documents = Document.objects.filter(pk__in=document_ids)
         if documents.count() != len(document_ids):
-            return HttpResponseBadRequest("One or more documents not found")
+            return HttpResponseBadRequest(DOCUMENSO_DOCUMENTS_NOT_FOUND)
 
         for document in documents:
-            if not has_perms_owner_aware(request.user, "view_document", document):
-                return HttpResponseForbidden("Insufficient permissions")
+            if not has_perms_owner_aware(
+                request.user,
+                DOCUMENSO_VIEW_DOCUMENT_PERMISSION,
+                document,
+            ):
+                return HttpResponseForbidden(DOCUMENSO_INSUFFICIENT_PERMISSIONS)
 
-        api_url = f"{settings.DOCUMENSO_URL}/api/v2/envelope/create"
-        headers = {"Authorization": f"{settings.DOCUMENSO_TOKEN}"}
+        api_url = f"{settings.DOCUMENSO_URL}{DOCUMENSO_CREATE_ENVELOPE_PATH}"
+        headers = {DOCUMENSO_AUTH_HEADER: f"{settings.DOCUMENSO_TOKEN}"}
 
         try:
             multipart_files = []
@@ -3459,11 +3492,29 @@ class DocumensoSendView(GenericAPIView):
                 f = open(file_path, "rb")  # noqa: SIM115
                 opened.append(f)
                 filename = Path(file_path).name
-                multipart_files.append(("files", (filename, f, "application/pdf")))
+                multipart_files.append(
+                    (
+                        DOCUMENSO_FILES_FIELD,
+                        (filename, f, DOCUMENSO_PDF_CONTENT_TYPE),
+                    )
+                )
 
-
-            payload = json.dumps({"type": "DOCUMENT", "title": documents[0].title if len(documents) == 1 else f"{len(documents)} documents"})
-            multipart_files.append(("payload", (None, payload, "application/json")))
+            payload = json.dumps(
+                {
+                    DOCUMENSO_TYPE_KEY: DOCUMENSO_PAYLOAD_TYPE,
+                    DOCUMENSO_TITLE_KEY: (
+                        documents[0].title
+                        if len(documents) == 1
+                        else f"{len(documents)} {DOCUMENSO_DOCUMENTS_LABEL}"
+                    ),
+                },
+            )
+            multipart_files.append(
+                (
+                    DOCUMENSO_PAYLOAD_FIELD,
+                    (None, payload, DOCUMENSO_JSON_CONTENT_TYPE),
+                )
+            )
 
             response = httpx.post(
                 api_url,
@@ -3475,31 +3526,35 @@ class DocumensoSendView(GenericAPIView):
                 f.close()
 
             if response.status_code not in (200, 201):
-                logger.error(
-                    "Documenso API error %s: %s",
-                    response.status_code,
-                    response.text,
-                )
+                logger.error(DOCUMENSO_API_ERROR_LOG, response.status_code, response.text)
                 return HttpResponse(
-                    f"Documenso error: {response.text}",
+                    DOCUMENSO_API_ERROR.format(response_text=response.text),
                     status=502,
                 )
 
             data = response.json()
-            doc_id = data.get("id") or data.get("documentId")
+            doc_id = data.get(DOCUMENSO_RESPONSE_ID_KEY) or data.get(
+                DOCUMENSO_RESPONSE_DOCUMENT_ID_KEY,
+            )
             if not doc_id:
-                logger.error("Documenso response missing document id: %s", data)
-                return HttpResponse("Documenso returned no document id", status=502)
+                logger.error(DOCUMENSO_RESPONSE_MISSING_DOCUMENT_ID_LOG, data)
+                return HttpResponse(DOCUMENSO_NO_DOCUMENT_ID, status=502)
 
             if general_config.documenso_team_slug:
-                documenso_url = f"{settings.DOCUMENSO_URL}/t/{general_config.documenso_team_slug}/documents/{doc_id}/edit"
+                documenso_url = (
+                    f"{settings.DOCUMENSO_URL}"
+                    + DOCUMENSO_DOCUMENT_EDIT_PATH.format(
+                        team_slug=general_config.documenso_team_slug,
+                        document_id=doc_id,
+                    )
+                )
             else:
-                documenso_url = f"{settings.DOCUMENSO_URL}/documents"
-            return Response({"url": documenso_url})
+                documenso_url = f"{settings.DOCUMENSO_URL}{DOCUMENSO_DOCUMENTS_PATH}"
+            return Response({DOCUMENSO_RESPONSE_URL_KEY: documenso_url})
 
         except Exception as exc:
-            logger.exception("Error sending documents to Documenso: %s", exc)
-            return HttpResponseServerError(f"Error sending to Documenso: {exc}")
+            logger.exception(DOCUMENSO_SEND_EXCEPTION_LOG, exc)
+            return HttpResponseServerError(DOCUMENSO_SEND_ERROR.format(error=exc))
 
 
 @extend_schema_view(**generate_object_with_permissions_schema(StoragePathSerializer))

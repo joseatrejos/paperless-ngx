@@ -231,6 +231,7 @@ export class DocumentDetailComponent
   error: any
 
   networkActive = false
+  isSendingToDocumenso = false
 
   documentId: number
   document: Document
@@ -1924,20 +1925,27 @@ export class DocumentDetailComponent
   public sendToDocumenso() {
     if (!this.documensoEnabled) {
       this.toastService.showError(
-        $localize`Documenso no está configurado. Establece PAPERLESS_DOCUMENSO_URL y PAPERLESS_DOCUMENSO_TOKEN en paperless.conf.`
+        $localize`Documenso is not configured. Set PAPERLESS_DOCUMENSO_URL and PAPERLESS_DOCUMENSO_TOKEN in paperless.conf.`
       )
       return
     }
+    this.isSendingToDocumenso = true
+    this.toastService.showInfo($localize`Redirecting to Documenso...`)
     this.documentsService
       .sendToDocumenso([this.document.id])
       .pipe(first())
       .subscribe({
-        next: (res) => window.open(res.url, '_blank'),
-        error: (err) =>
+        next: (res) => {
+          this.isSendingToDocumenso = false
+          window.open(res.url, '_blank')
+        },
+        error: (err) => {
+          this.isSendingToDocumenso = false
           this.toastService.showError(
             $localize`Error sending document to Documenso`,
             err
-          ),
+          )
+        },
       })
   }
 

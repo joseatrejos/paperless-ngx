@@ -99,6 +99,7 @@ export class DocumentCardSmallComponent
   clickStoragePath = new EventEmitter<number>()
 
   moreTags: number = null
+  isSendingToDocumenso = false
 
   @ViewChild('popupPreview') popupPreview: PreviewPopupComponent
 
@@ -145,20 +146,27 @@ export class DocumentCardSmallComponent
     event.stopPropagation()
     if (!this.settingsService.get(SETTINGS_KEYS.DOCUMENSO_ENABLED)) {
       this.toastService.showError(
-        $localize`Documenso no está configurado. Establece PAPERLESS_DOCUMENSO_URL y PAPERLESS_DOCUMENSO_TOKEN en paperless.conf.`
+        $localize`Documenso is not configured. Set PAPERLESS_DOCUMENSO_URL and PAPERLESS_DOCUMENSO_TOKEN in paperless.conf.`
       )
       return
     }
+    this.isSendingToDocumenso = true
+    this.toastService.showInfo($localize`Redirecting to Documenso...`)
     this.documentService
       .sendToDocumenso([this.document.id])
       .pipe(first())
       .subscribe({
-        next: (res) => window.open(res.url, '_blank'),
-        error: (err) =>
+        next: (res) => {
+          this.isSendingToDocumenso = false
+          window.open(res.url, '_blank')
+        },
+        error: (err) => {
+          this.isSendingToDocumenso = false
           this.toastService.showError(
             $localize`Error sending document to Documenso`,
             err
-          ),
+          )
+        },
       })
   }
 }
