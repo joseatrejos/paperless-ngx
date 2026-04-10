@@ -18,6 +18,7 @@ from documents.consts import (
     EMAIL_CTX_PRIMARY_COLOR,
     EMAIL_CTX_SUBJECT,
     EMAIL_LOGO_CID,
+    EMAIL_MIXED_SUBTYPE_RELATED,
     EMAIL_TEMPLATE_WORKFLOW_NOTIFICATION,
     PAPERLESS_DEFAULT_THEME_COLOR,
     EMAIL_CTX_BODY,
@@ -128,7 +129,7 @@ def send_email(
         email.attach_alternative(html_message, "text/html")
         if inline_images:
             # multipart/related allows HTML to reference inline images via cid:
-            email.mixed_subtype = "related"
+            email.mixed_subtype = EMAIL_MIXED_SUBTYPE_RELATED
             for img in inline_images:
                 mime_img = MIMEImage(img.data, _subtype=img.subtype)
                 mime_img.add_header("Content-ID", f"<{img.content_id}>")

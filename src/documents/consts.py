@@ -5,6 +5,7 @@
 EMAIL_TEMPLATE_WORKFLOW_NOTIFICATION = "account/email/workflow_notification.html"
 
 EMAIL_LOGO_CID = "email_logo"
+EMAIL_MIXED_SUBTYPE_RELATED = "related"
 
 PAPERLESS_DEFAULT_THEME_COLOR = "#17541f"
 
