@@ -3431,6 +3431,8 @@ class DocumensoSendView(GenericAPIView):
             return HttpResponseBadRequest("Documenso integration is not configured")
 
         document_ids = request.data.get("document_ids")
+        general_config = GeneralConfig()
+        
         if not document_ids or not isinstance(document_ids, list):
             return HttpResponseBadRequest("document_ids must be a non-empty list")
 
@@ -3489,10 +3491,8 @@ class DocumensoSendView(GenericAPIView):
                 logger.error("Documenso response missing document id: %s", data)
                 return HttpResponse("Documenso returned no document id", status=502)
 
-            general_config = GeneralConfig()
-            team_slug = general_config.documenso_team_slug
-            if team_slug:
-                documenso_url = f"{settings.DOCUMENSO_URL}/t/{team_slug}/documents/{doc_id}/edit"
+            if general_config.documenso_team_slug:
+                documenso_url = f"{settings.DOCUMENSO_URL}/t/{general_config.documenso_team_slug}/documents/{doc_id}/edit"
             else:
                 documenso_url = f"{settings.DOCUMENSO_URL}/documents"
             return Response({"url": documenso_url})
