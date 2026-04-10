@@ -5,6 +5,7 @@ import platform
 import re
 import tempfile
 import zipfile
+import json
 from collections import defaultdict
 from collections import deque
 from datetime import datetime
@@ -3416,6 +3417,91 @@ class BulkDownloadView(DocumentSelectionMixin, GenericAPIView):
             return response
 
 
+class DocumensoSendView(GenericAPIView):
+    """
+    Upload one or more documents to Documenso for e-signing.
+    Returns the URL of the created Documenso document.
+    """
+
+    permission_classes = (IsAuthenticated,)
+    parser_classes = (parsers.JSONParser,)
+
+    def post(self, request, format=None):
+        if not settings.DOCUMENSO_ENABLED:
+            return HttpResponseBadRequest("Documenso integration is not configured")
+
+        document_ids = request.data.get("document_ids")
+        if not document_ids or not isinstance(document_ids, list):
+            return HttpResponseBadRequest("document_ids must be a non-empty list")
+
+        documents = Document.objects.filter(pk__in=document_ids)
+        if documents.count() != len(document_ids):
+            return HttpResponseBadRequest("One or more documents not found")
+
+        for document in documents:
+            if not has_perms_owner_aware(request.user, "view_document", document):
+                return HttpResponseForbidden("Insufficient permissions")
+
+        api_url = f"{settings.DOCUMENSO_URL}/api/v2/envelope/create"
+        headers = {"Authorization": f"{settings.DOCUMENSO_TOKEN}"}
+
+        try:
+            multipart_files = []
+            opened = []
+            for document in documents:
+                file_path = (
+                    document.archive_path
+                    if document.archive_path and Path(document.archive_path).exists()
+                    else document.source_path
+                )
+                f = open(file_path, "rb")  # noqa: SIM115
+                opened.append(f)
+                filename = Path(file_path).name
+                multipart_files.append(("files", (filename, f, "application/pdf")))
+
+
+            payload = json.dumps({"type": "DOCUMENT", "title": documents[0].title if len(documents) == 1 else f"{len(documents)} documents"})
+            multipart_files.append(("payload", (None, payload, "application/json")))
+
+            response = httpx.post(
+                api_url,
+                headers=headers,
+                files=multipart_files,
+                timeout=60.0,
+            )
+            for f in opened:
+                f.close()
+
+            if response.status_code not in (200, 201):
+                logger.error(
+                    "Documenso API error %s: %s",
+                    response.status_code,
+                    response.text,
+                )
+                return HttpResponse(
+                    f"Documenso error: {response.text}",
+                    status=502,
+                )
+
+            data = response.json()
+            doc_id = data.get("id") or data.get("documentId")
+            if not doc_id:
+                logger.error("Documenso response missing document id: %s", data)
+                return HttpResponse("Documenso returned no document id", status=502)
+
+            general_config = GeneralConfig()
+            team_slug = general_config.documenso_team_slug
+            if team_slug:
+                documenso_url = f"{settings.DOCUMENSO_URL}/t/{team_slug}/documents/{doc_id}/edit"
+            else:
+                documenso_url = f"{settings.DOCUMENSO_URL}/documents"
+            return Response({"url": documenso_url})
+
+        except Exception as exc:
+            logger.exception("Error sending documents to Documenso: %s", exc)
+            return HttpResponseServerError(f"Error sending to Documenso: {exc}")
+
+
 @extend_schema_view(**generate_object_with_permissions_schema(StoragePathSerializer))
 class StoragePathViewSet(PermissionsAwareDocumentCountMixin, ModelViewSet):
     model = StoragePath
@@ -3530,6 +3616,8 @@ class UiSettingsView(GenericAPIView):
                 request.session["oauth_state"] = manager.state
 
         ui_settings["email_enabled"] = settings.EMAIL_ENABLED
+        ui_settings["documenso_enabled"] = settings.DOCUMENSO_ENABLED
+        ui_settings["documenso_team_slug"] = general_config.documenso_team_slug or ""
 
         ai_config = AIConfig()
 

@@ -339,6 +339,17 @@ class ApplicationConfiguration(AbstractSingletonModel):
         max_length=256,
     )
 
+    """
+    Documenso integration settings
+    """
+
+    documenso_team_slug = models.CharField(
+        verbose_name=_("Documenso team slug for direct document URL"),
+        blank=True,
+        null=True,
+        max_length=128,
+    )
+
     class Meta:
         verbose_name = _("paperless application settings")
         permissions = [

@@ -121,6 +121,9 @@
             <i-bs name="envelope" class="me-1"></i-bs><ng-container i18n>Email</ng-container>
           </button>
         }
+        <button ngbDropdownItem (click)="sendToDocumenso()" [disabled]="list.allSelected">
+          <i-bs name="pen" class="me-1"></i-bs><ng-container i18n>Sign with Documenso</ng-container>
+        </button>
       </div>
     </div>
     <div class="btn-group btn-group-sm">

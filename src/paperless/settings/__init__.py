@@ -1041,6 +1041,14 @@ APP_TITLE = os.getenv("PAPERLESS_APP_TITLE", None)
 APP_LOGO = os.getenv("PAPERLESS_APP_LOGO", None)
 
 ###############################################################################
+# Documenso integration                                                       #
+###############################################################################
+
+DOCUMENSO_URL = os.getenv("PAPERLESS_DOCUMENSO_URL", "").rstrip("/")
+DOCUMENSO_TOKEN = os.getenv("PAPERLESS_DOCUMENSO_TOKEN", "")
+DOCUMENSO_ENABLED = bool(DOCUMENSO_URL and DOCUMENSO_TOKEN)
+
+###############################################################################
 # Machine Learning                                                            #
 ###############################################################################
 

@@ -15,7 +15,7 @@ import {
 } from '@ng-bootstrap/ng-bootstrap'
 import { NgxBootstrapIconsModule } from 'ngx-bootstrap-icons'
 import { of } from 'rxjs'
-import { delay } from 'rxjs/operators'
+import { delay, first } from 'rxjs/operators'
 import {
   DEFAULT_DISPLAY_FIELDS,
   DisplayField,
@@ -32,6 +32,7 @@ import { StoragePathNamePipe } from 'src/app/pipes/storage-path-name.pipe'
 import { UsernamePipe } from 'src/app/pipes/username.pipe'
 import { DocumentService } from 'src/app/services/rest/document.service'
 import { SettingsService } from 'src/app/services/settings.service'
+import { ToastService } from 'src/app/services/toast.service'
 import { CustomFieldDisplayComponent } from '../../common/custom-field-display/custom-field-display.component'
 import { PreviewPopupComponent } from '../../common/preview-popup/preview-popup.component'
 import { TagComponent } from '../../common/tag/tag.component'
@@ -66,6 +67,7 @@ export class DocumentCardSmallComponent
 {
   private documentService = inject(DocumentService)
   settingsService = inject(SettingsService)
+  private toastService = inject(ToastService)
 
   DisplayField = DisplayField
 
@@ -137,5 +139,26 @@ export class DocumentCardSmallComponent
 
   get notesEnabled(): boolean {
     return this.settingsService.get(SETTINGS_KEYS.NOTES_ENABLED)
+  }
+
+  sendToDocumenso(event: Event) {
+    event.stopPropagation()
+    if (!this.settingsService.get(SETTINGS_KEYS.DOCUMENSO_ENABLED)) {
+      this.toastService.showError(
+        $localize`Documenso no está configurado. Establece PAPERLESS_DOCUMENSO_URL y PAPERLESS_DOCUMENSO_TOKEN en paperless.conf.`
+      )
+      return
+    }
+    this.documentService
+      .sendToDocumenso([this.document.id])
+      .pipe(first())
+      .subscribe({
+        next: (res) => window.open(res.url, '_blank'),
+        error: (err) =>
+          this.toastService.showError(
+            $localize`Error sending document to Documenso`,
+            err
+          ),
+      })
   }
 }

@@ -1917,6 +1917,30 @@ export class DocumentDetailComponent
     return this.settings.get(SETTINGS_KEYS.EMAIL_ENABLED)
   }
 
+  get documensoEnabled(): boolean {
+    return this.settings.get(SETTINGS_KEYS.DOCUMENSO_ENABLED)
+  }
+
+  public sendToDocumenso() {
+    if (!this.documensoEnabled) {
+      this.toastService.showError(
+        $localize`Documenso no está configurado. Establece PAPERLESS_DOCUMENSO_URL y PAPERLESS_DOCUMENSO_TOKEN en paperless.conf.`
+      )
+      return
+    }
+    this.documentsService
+      .sendToDocumenso([this.document.id])
+      .pipe(first())
+      .subscribe({
+        next: (res) => window.open(res.url, '_blank'),
+        error: (err) =>
+          this.toastService.showError(
+            $localize`Error sending document to Documenso`,
+            err
+          ),
+      })
+  }
+
   public openEmailDocument() {
     const modal = this.modalService.open(EmailDocumentDialogComponent, {
       backdrop: 'static',

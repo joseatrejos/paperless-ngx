@@ -1020,6 +1020,31 @@ export class BulkEditorComponent
     return this.settings.get(SETTINGS_KEYS.EMAIL_ENABLED)
   }
 
+  public get documensoEnabled(): boolean {
+    return this.settings.get(SETTINGS_KEYS.DOCUMENSO_ENABLED)
+  }
+
+  public sendToDocumenso() {
+    if (!this.documensoEnabled) {
+      this.toastService.showError(
+        $localize`Documenso no está configurado. Establece PAPERLESS_DOCUMENSO_URL y PAPERLESS_DOCUMENSO_TOKEN en paperless.conf.`
+      )
+      return
+    }
+    const ids = Array.from(this.list.selected)
+    this.documentService
+      .sendToDocumenso(ids)
+      .pipe(first())
+      .subscribe({
+        next: (res) => window.open(res.url, '_blank'),
+        error: (err) =>
+          this.toastService.showError(
+            $localize`Error sending documents to Documenso`,
+            err
+          ),
+      })
+  }
+
   createShareLinkBundle() {
     const modal = this.modalService.open(ShareLinkBundleDialogComponent, {
       backdrop: 'static',
