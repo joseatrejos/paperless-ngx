@@ -438,6 +438,20 @@ instructions](https://www.nltk.org/data.html) for details on how to download the
 Your Paperless-ngx instance should now be accessible at `http://localhost:8000` (or similar, depending on your configuration).
 When you first access the web interface you will be prompted to create a [superuser](usage.md#superusers) account.
 
+#### Seed default data {#seed_data}
+
+After the database is migrated and the server is running, seed the default workflows:
+
+```bash
+sudo -Hu paperless python3 manage.py seed_all
+```
+
+This creates the built-in workflows (propagate tag permissions, email notifications) idempotently — safe to re-run at any time.
+
+!!! tip
+
+    Set [`PAPERLESS_URL`](configuration.md#PAPERLESS_URL) to your instance's public address (e.g. `PAPERLESS_URL=https://paperless.example.com`) before running the seed. Document links included in email notifications rely on this value — without it they will render as `None/documents/<id>/`.
+
 ## Build the Docker image yourself {#docker_build data-toc-label="Building the Docker image"}
 
 Building the Docker image yourself is typically used for development, but it can also be used for production
