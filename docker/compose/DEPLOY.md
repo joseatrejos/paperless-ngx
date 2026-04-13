@@ -8,17 +8,21 @@ Copia el archivo de ejemplo y edítalo:
 cp docker/compose/docker-compose.example.env docker/compose/docker-compose.env
 ```
 
-Cambia estas 3 variables:
+Cambia estas variables:
 
 ```env
-PAPERLESS_SECRET_KEY=       # clave secreta — genera con: python3 -c "import secrets; print(secrets.token_urlsafe(64))"
+# Obligatorias
+PAPERLESS_SECRET_KEY=       # genera con: python3 -c "import secrets; print(secrets.token_urlsafe(64))"
 PAPERLESS_WEB_PORT=9000     # puerto del host — verifica que esté libre en el servidor
-PAPERLESS_POSTGRES_PASSWORD= # contraseña de la base de datos
 ```
 
-Opcional si usas dominio o reverse proxy:
 ```env
-PAPERLESS_URL=https://tu-dominio.com
+# Recomendadas revisar
+COMPOSE_PROJECT_NAME=paperless-deploy  # nombre único por stack en el servidor
+PAPERLESS_POSTGRES_DB=paperless
+PAPERLESS_POSTGRES_USER=paperless
+PAPERLESS_POSTGRES_PORT=5432
+PAPERLESS_POSTGRES_PASSWORD= # contraseña de la base de datos
 ```
 
 Si vas a enviar correos (notificaciones, consumo por mail), agrega esto en `paperless.conf`:
