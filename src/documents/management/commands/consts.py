@@ -5,11 +5,11 @@ Shared constants for management commands (seeds, etc.).
 # List of all seed commands run by seed_all.
 # Add new seeds here to include them automatically.
 SEED_COMMANDS: list[str] = [
+    "seed_users",
     "seed_workflows",
 ]
 
 # Default workflow name prefix used to identify system-created workflows.
-SEED_WORKFLOW_PREFIX = "[Default]"
 
 # Dict keys used in workflow spec dicts (avoids magic strings).
 NAME = "name"

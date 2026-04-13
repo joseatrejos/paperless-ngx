@@ -78,6 +78,7 @@ virtualenv
 .venv/
 /docker-compose.env
 /docker-compose.yml
+docker/compose/docker-compose.env
 .ruff_cache/
 
 # Used for development

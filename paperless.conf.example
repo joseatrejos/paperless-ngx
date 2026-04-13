@@ -1,7 +1,30 @@
 # Have a look at the docs for documentation.
 # https://docs.paperless-ngx.com/configuration/
+#
 
-# Required services
+PAPERLESS_SECRET_KEY=change-me
+PAPERLESS_DEBUG=false
+PAPERLESS_ACCOUNT_DEFAULT_HTTP_PROTOCOL=http
+
+# SMTP — Gmail
+PAPERLESS_EMAIL_HOST=smtp.gmail.com
+PAPERLESS_EMAIL_PORT=587
+PAPERLESS_EMAIL_USE_TLS=true
+PAPERLESS_EMAIL_HOST_USER=test@gmail.com
+PAPERLESS_EMAIL_HOST_PASSWORD=asdadszxczcxasdasdx
+
+# OAuth — Google y Microsoft (allauth)
+PAPERLESS_APPS=allauth.socialaccount.providers.google,allauth.socialaccount.providers.microsoft
+PAPERLESS_SOCIALACCOUNT_PROVIDERS={"google":{"APPS":[{"provider_id":"google","name":"Google","client_id":"","secret":""}]},"microsoft":{"APPS":[{"provider_id":"microsoft","name":"Microsoft","client_id":"","secret":"","settings":{"tenant":""}}]}}
+
+# OAuth — Discord (custom app paperless_discord)
+# Redirect URI: http://localhost:8000
+DISCORD_CLIENT_ID=444441227444444
+DISCORD_CLIENT_SECRET=xxxxxDnlbmBqcxxxxxxx
+DISCORD_AUTH_URL=https://discord.com/oauth2/authorize
+DISCORD_API_URL=https://discord.com/api
+# DISCORD_GUILD_ID=           # opcional: restringir a un servidor
+# DISCORD_ALLOWED_ROLES=      # opcional: restringir por roles (ej: admin,staff)
 
 #PAPERLESS_REDIS=redis://localhost:6379
 #PAPERLESS_DBHOST=localhost
@@ -93,5 +116,5 @@ PAPERLESS_SECRET_KEY=change-me
 
 # Documenso integration
 
-#PAPERLESS_DOCUMENSO_URL=https://your-documenso-instance.example.com
-#PAPERLESS_DOCUMENSO_TOKEN=
+PAPERLESS_DOCUMENSO_URL=https://documenso.com
+PAPERLESS_DOCUMENSO_TOKEN=api_182baxxxxxxxxxx

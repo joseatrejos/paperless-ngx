@@ -8,9 +8,10 @@ Users can disable or delete any of these workflows from the UI at any time.
 """
 
 from django.core.management.base import BaseCommand
+from django.conf import settings
 
 from documents.management.commands.consts import (
-    ACTION, BODY, EMAIL, ENABLED, ORDER, SEED_WORKFLOW_PREFIX, SUBJECT, TRIGGER, TYPE, NAME, MATCHING_ALGORITHM, INCLUDE_DOCUMENT,
+    ACTION, BODY, EMAIL, ENABLED, ORDER, SUBJECT, TRIGGER, TYPE, NAME, MATCHING_ALGORITHM, INCLUDE_DOCUMENT,
     TPL_TITLE, TPL_ADDED, TPL_OWNER, TPL_ORIGINAL_FILE, TPL_URL,
     LBL_TITLE, LBL_ADDED, LBL_OWNER, LBL_ORIGINAL_FILE,
 )
@@ -23,7 +24,7 @@ from documents.models import WorkflowTrigger
 
 def _propagate(name: str, order: int, trigger_type: WorkflowTrigger.WorkflowTriggerType) -> dict:
     return {
-        NAME: f"{SEED_WORKFLOW_PREFIX} {name}",
+        NAME: f"{name}",
         ORDER: order,
         TRIGGER: {TYPE: trigger_type, MATCHING_ALGORITHM: WorkflowTrigger.WorkflowTriggerMatching.NONE},
         ACTION: {TYPE: WorkflowAction.WorkflowActionType.PROPAGATE_TAG_PERMISSIONS},
@@ -32,7 +33,7 @@ def _propagate(name: str, order: int, trigger_type: WorkflowTrigger.WorkflowTrig
 
 def _email(name: str, order: int, trigger_type: WorkflowTrigger.WorkflowTriggerType, subject: str, body: str) -> dict:
     return {
-        NAME: f"{SEED_WORKFLOW_PREFIX} {name}",
+        NAME: f"{name}",
         ORDER: order,
         TRIGGER: {TYPE: trigger_type, MATCHING_ALGORITHM: WorkflowTrigger.WorkflowTriggerMatching.NONE},
         EMAIL: {SUBJECT: subject, BODY: body, INCLUDE_DOCUMENT: False},
@@ -87,7 +88,8 @@ class Command(BaseCommand):
 
             if not workflow.actions.exists():
                 if EMAIL in spec:
-                    email_obj = WorkflowActionEmail.objects.create(**spec[EMAIL], to="")
+                    default_to = getattr(settings, "EMAIL_HOST_USER", "") or ""
+                    email_obj = WorkflowActionEmail.objects.create(**spec[EMAIL], to=default_to)
                     action = WorkflowAction.objects.create(
                         type=WorkflowAction.WorkflowActionType.EMAIL,
                         email=email_obj,
