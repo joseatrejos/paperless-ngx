@@ -2,7 +2,13 @@
 
 ## 1) Antes de Docker (preparación)
 
-Abre `docker/compose/docker-compose.env` y cambia estas 3 variables:
+Copia el archivo de ejemplo y edítalo:
+
+```bash
+cp docker/compose/docker-compose.example.env docker/compose/docker-compose.env
+```
+
+Cambia estas 3 variables:
 
 ```env
 PAPERLESS_SECRET_KEY=       # clave secreta — genera con: python3 -c "import secrets; print(secrets.token_urlsafe(64))"
