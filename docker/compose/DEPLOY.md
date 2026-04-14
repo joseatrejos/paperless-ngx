@@ -92,7 +92,20 @@ docker compose -f docker/compose/docker-compose.deploy.yml --env-file docker/com
 
 ---
 
-## 4) Al final: ejecutar `seed_all` (una vez)
+## 4) Migraciones (después de cada rebuild con cambios en modelos)
+
+Siempre que se agreguen nuevos modelos o se modifiquen campos existentes, genera y aplica las migraciones:
+
+```bash
+# Generar migraciones pendientes
+docker compose -f docker/compose/docker-compose.deploy.yml --env-file docker/compose/docker-compose.env exec webserver python3 manage.py makemigrations
+
+# Aplicar migraciones
+docker compose -f docker/compose/docker-compose.deploy.yml --env-file docker/compose/docker-compose.env exec webserver python3 manage.py migrate
+```
+---
+
+## 5) Al final: ejecutar `seed_all` (una vez)
 
 Ejecuta este comando solo una vez en una instalación nueva:
 
