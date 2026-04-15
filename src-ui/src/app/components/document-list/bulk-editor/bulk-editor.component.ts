@@ -1,4 +1,5 @@
 import { Component, inject, Input, OnDestroy, OnInit } from '@angular/core'
+import { Router } from '@angular/router'
 import {
   FormControl,
   FormGroup,
@@ -39,6 +40,7 @@ import { SavedViewService } from 'src/app/services/rest/saved-view.service'
 import { ShareLinkBundleService } from 'src/app/services/rest/share-link-bundle.service'
 import { StoragePathService } from 'src/app/services/rest/storage-path.service'
 import { TagService } from 'src/app/services/rest/tag.service'
+import { ConfigService } from 'src/app/services/config.service'
 import { SettingsService } from 'src/app/services/settings.service'
 import { ToastService } from 'src/app/services/toast.service'
 import { flattenTags } from 'src/app/utils/flatten-tags'
@@ -95,6 +97,8 @@ export class BulkEditorComponent
   private permissionService = inject(PermissionsService)
   private savedViewService = inject(SavedViewService)
   private readonly shareLinkBundleService = inject(ShareLinkBundleService)
+  private router = inject(Router)
+  private configService = inject(ConfigService)
 
   tagSelectionModel = new FilterableDropdownSelectionModel(true)
   correspondentSelectionModel = new FilterableDropdownSelectionModel()
@@ -1027,30 +1031,46 @@ export class BulkEditorComponent
 
   public sendToDocumenso() {
     if (!this.documensoEnabled) {
-      this.toastService.showError(
-        $localize`Documenso is not configured. Set PAPERLESS_DOCUMENSO_URL and PAPERLESS_DOCUMENSO_TOKEN in paperless.conf.`
-      )
+      this.toastService.show({
+        content: $localize`Documenso is not configured. Set PAPERLESS_DOCUMENSO_URL and PAPERLESS_DOCUMENSO_TOKEN in docker-compose.env.`,
+        classname: 'error',
+        delay: 10000,
+        action: () => this.router.navigate(['/config']),
+        actionName: $localize`Go to configuration`,
+      })
       return
     }
     const ids = Array.from(this.list.selected)
-    this.isSendingToDocumenso = true
-    this.toastService.showInfo($localize`Redirecting to Documenso...`)
-    this.documentService
-      .sendToDocumenso(ids)
-      .pipe(first())
-      .subscribe({
-        next: (res) => {
-          this.isSendingToDocumenso = false
-          window.open(res.url, '_blank')
-        },
-        error: (err) => {
-          this.isSendingToDocumenso = false
-          this.toastService.showError(
-            $localize`Error sending documents to Documenso`,
-            err
-          )
-        },
-      })
+    this.configService.getConfig().pipe(first()).subscribe((config) => {
+      if (!config.documenso_team_slug) {
+        this.toastService.show({
+          content: $localize`Documenso Team Slug is not configured. Set it in the configuration page.`,
+          classname: 'error',
+          delay: 10000,
+          action: () => this.router.navigate(['/config']),
+          actionName: $localize`Go to configuration`,
+        })
+        return
+      }
+      this.isSendingToDocumenso = true
+      this.toastService.showInfo($localize`Redirecting to Documenso...`)
+      this.documentService
+        .sendToDocumenso(ids)
+        .pipe(first())
+        .subscribe({
+          next: (res) => {
+            this.isSendingToDocumenso = false
+            window.open(res.url, '_blank')
+          },
+          error: (err) => {
+            this.isSendingToDocumenso = false
+            this.toastService.showError(
+              $localize`Error sending documents to Documenso`,
+              err
+            )
+          },
+        })
+    })
   }
 
   createShareLinkBundle() {

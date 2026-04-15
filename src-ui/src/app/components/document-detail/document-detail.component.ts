@@ -82,6 +82,7 @@ import { SavedViewService } from 'src/app/services/rest/saved-view.service'
 import { StoragePathService } from 'src/app/services/rest/storage-path.service'
 import { TagService } from 'src/app/services/rest/tag.service'
 import { UserService } from 'src/app/services/rest/user.service'
+import { ConfigService } from 'src/app/services/config.service'
 import { SettingsService } from 'src/app/services/settings.service'
 import { ToastService } from 'src/app/services/toast.service'
 import { WebsocketStatusService } from 'src/app/services/websocket-status.service'
@@ -219,6 +220,7 @@ export class DocumentDetailComponent
   private deviceDetectorService = inject(DeviceDetectorService)
   private savedViewService = inject(SavedViewService)
   private readonly websocketStatusService = inject(WebsocketStatusService)
+  private configService = inject(ConfigService)
 
   @ViewChild('inputTitle')
   titleInput: TextComponent
@@ -1924,29 +1926,45 @@ export class DocumentDetailComponent
 
   public sendToDocumenso() {
     if (!this.documensoEnabled) {
-      this.toastService.showError(
-        $localize`Documenso is not configured. Set PAPERLESS_DOCUMENSO_URL and PAPERLESS_DOCUMENSO_TOKEN in paperless.conf.`
-      )
+      this.toastService.show({
+        content: $localize`Documenso is not configured. Set PAPERLESS_DOCUMENSO_URL and PAPERLESS_DOCUMENSO_TOKEN in docker-compose.env.`,
+        classname: 'error',
+        delay: 10000,
+        action: () => this.router.navigate(['/config']),
+        actionName: $localize`Go to configuration`,
+      })
       return
     }
-    this.isSendingToDocumenso = true
-    this.toastService.showInfo($localize`Redirecting to Documenso...`)
-    this.documentsService
-      .sendToDocumenso([this.document.id])
-      .pipe(first())
-      .subscribe({
-        next: (res) => {
-          this.isSendingToDocumenso = false
-          window.open(res.url, '_blank')
-        },
-        error: (err) => {
-          this.isSendingToDocumenso = false
-          this.toastService.showError(
-            $localize`Error sending document to Documenso`,
-            err
-          )
-        },
-      })
+    this.configService.getConfig().pipe(first()).subscribe((config) => {
+      if (!config.documenso_team_slug) {
+        this.toastService.show({
+          content: $localize`Documenso Team Slug is not configured. Set it in the configuration page.`,
+          classname: 'error',
+          delay: 10000,
+          action: () => this.router.navigate(['/config']),
+          actionName: $localize`Go to configuration`,
+        })
+        return
+      }
+      this.isSendingToDocumenso = true
+      this.toastService.showInfo($localize`Redirecting to Documenso...`)
+      this.documentsService
+        .sendToDocumenso([this.document.id])
+        .pipe(first())
+        .subscribe({
+          next: (res) => {
+            this.isSendingToDocumenso = false
+            window.open(res.url, '_blank')
+          },
+          error: (err) => {
+            this.isSendingToDocumenso = false
+            this.toastService.showError(
+              $localize`Error sending document to Documenso`,
+              err
+            )
+          },
+        })
+    })
   }
 
   public openEmailDocument() {
