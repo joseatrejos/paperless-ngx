@@ -112,3 +112,20 @@ Ejecuta este comando solo una vez en una instalación nueva:
 ```bash
 docker compose -f docker/compose/docker-compose.deploy.yml --env-file docker/compose/docker-compose.env exec webserver python3 manage.py seed_all
 ```
+
+---
+
+## 6) Scanner FTP (opcional)
+
+El stack incluye un servidor FTP que expone la carpeta `consume/` para que escáneres físicos envíen documentos directamente a Paperless.
+
+### Configurar en `docker-compose.env`
+
+```env
+FTP_USER=scanner
+FTP_PASS=scanner
+FTP_PORT=21
+FTP_PASSIVE_ADDRESS=192.168.1.10   # IP LAN del servidor con Docker
+```
+
+
