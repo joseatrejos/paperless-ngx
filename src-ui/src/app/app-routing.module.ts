@@ -155,8 +155,16 @@ export const routes: Routes = [
       },
       {
         path: 'tags',
-        redirectTo: '/attributes/tags',
-        pathMatch: 'full',
+        component: DocumentAttributesComponent,
+        canActivate: [PermissionsGuard],
+        data: {
+          section: 'tags',
+          requiredPermission: {
+            action: PermissionAction.View,
+            type: PermissionType.Tag,
+          },
+          componentName: 'DocumentAttributesComponent',
+        },
       },
       {
         path: 'correspondents',

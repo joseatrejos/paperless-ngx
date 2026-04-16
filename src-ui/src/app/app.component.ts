@@ -196,7 +196,7 @@ export class AppComponent implements OnInit, OnDestroy {
       {
         anchorId: 'tour.tags',
         content: $localize`Attributes like tags, correspondents, document types, storage paths and custom fields can all be managed here. They can also be created from the document edit view.`,
-        route: '/attributes/tags',
+        route: '/tags',
         backdropConfig: {
           offset: 0,
         },

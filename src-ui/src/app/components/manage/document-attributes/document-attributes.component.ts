@@ -54,6 +54,7 @@ interface DocumentAttributesSection {
   permissionType: PermissionType
   kind: DocumentAttributesSectionKind
   component: Type<any>
+  showTab?: boolean
 }
 
 @Component({
@@ -92,6 +93,7 @@ export class DocumentAttributesComponent
       permissionType: PermissionType.Tag,
       kind: DocumentAttributesSectionKind.ManagementList,
       component: TagListComponent,
+      showTab: false,
     },
     {
       id: DocumentAttributesNavIDs.Correspondents,
@@ -151,6 +153,10 @@ export class DocumentAttributesComponent
     )
   }
 
+  get tabSections(): DocumentAttributesSection[] {
+    return this.visibleSections.filter((section) => section.showTab !== false)
+  }
+
   get activeSection(): DocumentAttributesSection | null {
     return (
       this.visibleSections.find((section) => section.id === this.activeNavID) ??
@@ -194,7 +200,10 @@ export class DocumentAttributesComponent
     this.activatedRoute.paramMap
       .pipe(takeUntil(this.unsubscribeNotifier))
       .subscribe((paramMap) => {
-        const section = paramMap.get('section')
+        const routeDataSection = this.activatedRoute.snapshot.data[
+          'section'
+        ] as string | undefined
+        const section = paramMap.get('section') ?? routeDataSection ?? null
         const navIDFromSection =
           this.getNavIDForSection(section) ?? this.getDefaultNavID()
 
@@ -238,7 +247,7 @@ export class DocumentAttributesComponent
   }
 
   private getDefaultNavID(): DocumentAttributesNavIDs | null {
-    return this.visibleSections[0]?.id ?? null
+    return this.tabSections[0]?.id ?? null
   }
 
   private getNavIDForSection(section: string): DocumentAttributesNavIDs | null {

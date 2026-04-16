@@ -60,7 +60,7 @@
 </pngx-page-header>
 
 <ul ngbNav #nav="ngbNav" (navChange)="onNavChange($event)" [(activeId)]="activeNavID" class="nav-underline">
-  @for (section of visibleSections; track section.id) {
+  @for (section of tabSections; track section.id) {
     <li [ngbNavItem]="section.id">
       <a ngbNavLink >
         <i-bs class="me-2" [name]="section.icon"></i-bs>{{ section.label }}
