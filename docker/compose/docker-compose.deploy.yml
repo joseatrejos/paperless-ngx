@@ -84,6 +84,18 @@ services:
       PAPERLESS_TIKA_GOTENBERG_ENDPOINT: http://gotenberg:3000
       PAPERLESS_TIKA_ENDPOINT: http://tika:9998
 
+  ftp:
+    image: docker.io/delfer/alpine-ftp-server:latest
+    restart: unless-stopped
+    ports:
+      - "${FTP_PORT:-21}:21"
+      - "21000-21010:21000-21010"
+    volumes:
+      - ${PAPERLESS_CONSUME_DIR:-./consume}:/ftp/${FTP_USER:-scanner}
+    environment:
+      USERS: "${FTP_USER:-scanner}|${FTP_PASS:-scanner}|/ftp/${FTP_USER:-scanner}|1000"
+      ADDRESS: ${FTP_PASSIVE_ADDRESS:-127.0.0.1}
+
 volumes:
   data:
   media:
