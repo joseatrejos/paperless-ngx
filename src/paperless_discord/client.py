@@ -24,6 +24,10 @@ def has_discord_configuration():
 
 def get_redirect_uri(request):
     callback_uri = request.build_absolute_uri(reverse(DISCORD_REDIRECT_ROUTE_NAME))
+    protocol = getattr(settings, "ACCOUNT_DEFAULT_HTTP_PROTOCOL", "http")
+    parsed = urlparse(callback_uri)
+    callback_uri = parsed._replace(scheme=protocol).geturl()
+
     if not settings.DISCORD_REDIRECT_URI:
         return callback_uri
 
