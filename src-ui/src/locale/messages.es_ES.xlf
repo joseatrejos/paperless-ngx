@@ -3478,6 +3478,14 @@
         </context-group>
         <target state="translated">¿Estás seguro?</target>
       </trans-unit>
+      <trans-unit id="confirmButtonYes" datatype="html">
+        <source>Yes</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/components/common/confirm-button/confirm-button.component.html</context>
+          <context context-type="linenumber">20</context>
+        </context-group>
+        <target state="translated">Sí</target>
+      </trans-unit>
       <trans-unit id="1234709746630139322" datatype="html" approved="yes">
         <source>Confirmation</source>
         <context-group purpose="location">
@@ -10046,6 +10054,14 @@
         </context-group>
         <target state="translated">Personaliza las vistas de tus documentos.</target>
       </trans-unit>
+      <trans-unit id="8420539325839715135" datatype="html">
+        <source><x id="START_TAG_I_BS" ctype="x-i_bs" equiv-text="bs class=&quot;me-1&quot; name=&quot;person-fill-lock&quot;&gt;"/><x id="CLOSE_TAG_I_BS" ctype="x-i_bs" equiv-text="Permissions&lt;"/>Permissions</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/components/manage/saved-views/saved-views.component.html</context>
+          <context context-type="linenumber">35</context>
+        </context-group>
+        <target state="translated"><x id="START_TAG_I_BS" ctype="x-i_bs" equiv-text="bs class=&quot;me-1&quot; name=&quot;person-fill-lock&quot;&gt;"/><x id="CLOSE_TAG_I_BS" ctype="x-i_bs" equiv-text="Permissions&lt;"/>Permisos</target>
+      </trans-unit>
       <trans-unit id="6338800642797811873" datatype="html">
         <source>Documents page size</source>
         <context-group purpose="location">
@@ -10085,6 +10101,14 @@
           <context context-type="linenumber">48</context>
         </context-group>
         <target state="translated">Tarjetas Grandes</target>
+      </trans-unit>
+      <trans-unit id="5724790775622934883" datatype="html">
+        <source>Note: ordering is not preserved</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/components/manage/saved-views/saved-views.component.html</context>
+          <context context-type="linenumber">62</context>
+        </context-group>
+        <target state="translated">Nota: el orden no se conserva</target>
       </trans-unit>
       <trans-unit id="7877440816920439876" datatype="html" approved="yes">
         <source>No saved views defined.</source>
