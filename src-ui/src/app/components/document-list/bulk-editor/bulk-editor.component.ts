@@ -1035,7 +1035,7 @@ export class BulkEditorComponent
   public sendToDocumenso() {
     if (!this.documensoEnabled) {
       this.toastService.show({
-        content: $localize`:@@documenso.notConfigured:Documenso is not configured. Set PAPERLESS_DOCUMENSO_URL in docker-compose.env.`,
+        content: $localize`:@@documenso.notConfigured:Documenso is not configured. Set PAPERLESS_DOCUMENSO_URL, DOCUMENSO_API_URL and DOCUMENSO_API_KEY in docker-compose.env.`,
         classname: 'error',
         delay: 10000,
         action: () => this.router.navigate(['/config']),

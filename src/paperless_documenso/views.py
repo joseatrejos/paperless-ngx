@@ -9,7 +9,6 @@ from rest_framework.viewsets import ModelViewSet
 from rest_framework.viewsets import ReadOnlyModelViewSet
 
 from documents.permissions import PaperlessAdminPermissions
-from documents.permissions import PaperlessObjectPermissions
 from paperless.views import StandardPagination
 from paperless_documenso.models import DocumensoGroupLink
 from paperless_documenso.models import DocumensoUserSync
@@ -48,8 +47,8 @@ class DocumensoGroupLinkViewSet(ModelViewSet):
     @action(detail=True, methods=["post"], url_path="sync")
     def trigger_sync(self, request, pk=None):
         """
-        Fuerza la sincronización masiva de todos los usuarios del grupo
-        contra Documenso de forma asíncrona.
+        Triggers a bulk synchronisation of all users in the group to Documenso
+        asynchronously.
         """
         group_link = self.get_object()
         if not group_link.is_configured:
@@ -71,6 +70,6 @@ class DocumensoUserSyncViewSet(ReadOnlyModelViewSet):
     ).order_by("user__username")
     serializer_class = DocumensoUserSyncSerializer
     pagination_class = StandardPagination
-    permission_classes = (IsAuthenticated, PaperlessObjectPermissions)
+    permission_classes = (IsAuthenticated, PaperlessAdminPermissions)
     filter_backends = (OrderingFilter,)
     ordering_fields = ("user__username", "synced", "synced_at")

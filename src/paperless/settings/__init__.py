@@ -1052,7 +1052,7 @@ APP_LOGO = os.getenv("PAPERLESS_APP_LOGO", None)
 ###############################################################################
 
 DOCUMENSO_URL = os.getenv("PAPERLESS_DOCUMENSO_URL", "").rstrip("/")
-DOCUMENSO_ENABLED = bool(DOCUMENSO_URL)
+DOCUMENSO_ENABLED = bool(DOCUMENSO_URL and DOCUMENSO_API_KEY)
 
 ###############################################################################
 # Machine Learning                                                            #

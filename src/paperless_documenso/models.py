@@ -6,29 +6,29 @@ from django.utils import timezone
 
 class DocumensoGroupLink(models.Model):
     """
-    Vincula un Group de Paperless con una organización (Team) en Documenso.
-    La API key almacenada es la del equipo en Documenso.
+    Links a Paperless Group to an organisation (Team) in Documenso.
+    The stored API key belongs to the team in Documenso.
     """
 
     group = models.OneToOneField(
         Group,
         on_delete=models.CASCADE,
         related_name="documenso_link",
-        verbose_name="grupo",
+        verbose_name="group",
     )
     documenso_org_name = models.CharField(
         max_length=255,
         blank=True,
         default="",
-        verbose_name="Nombre de organización Documenso",
-        help_text="Nombre del workspace compartido en Documenso (se usará como slug).",
+        verbose_name="Documenso organisation name",
+        help_text="Name of the shared workspace in Documenso (used as a slug).",
     )
     documenso_team_token = models.CharField(
         max_length=255,
         blank=True,
         default="",
-        verbose_name="Token de equipo Documenso",
-        help_text="API token del equipo en Documenso. Se asigna automáticamente al provisionar.",
+        verbose_name="Documenso team token",
+        help_text="API token for the team in Documenso. Assigned automatically when provisioning.",
     )
 
     class Meta:
@@ -45,8 +45,8 @@ class DocumensoGroupLink(models.Model):
 
 class DocumensoUserSync(models.Model):
     """
-    Registra si un usuario ya fue creado en Documenso para un grupo concreto.
-    Constraint: evita llamar a la API dos veces para el mismo par (user, link).
+    Records whether a user has already been created in Documenso for a specific group.
+    Constraint: prevents calling the API twice for the same (user, group_link) pair.
     """
 
     user = models.ForeignKey(
@@ -61,7 +61,7 @@ class DocumensoUserSync(models.Model):
     )
     synced = models.BooleanField(
         default=False,
-        help_text="True si el usuario ya fue creado exitosamente en Documenso.",
+        help_text="True if the user has already been successfully created in Documenso.",
     )
     synced_at = models.DateTimeField(null=True, blank=True)
 

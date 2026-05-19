@@ -3,12 +3,15 @@ import random
 import string
 
 from celery import shared_task
+from django.conf import settings
 from django.contrib.auth import get_user_model
 
 from documents.mail import build_system_themed_email
 from documents.mail import send_email
 from paperless_documenso.client import DocumensoAPIError
 from paperless_documenso.client import DocumensoClient
+from paperless_documenso.models import DocumensoGroupLink
+from paperless_documenso.models import DocumensoUserSync
 
 logger = logging.getLogger("paperless.documenso.tasks")
 
@@ -17,9 +20,9 @@ User = get_user_model()
 
 def _generate_password(first_name: str, last_name: str) -> str:
     """
-    Genera una contraseña temporal con el formato:
-      nombre + 4 dígitos aleatorios + apellido
-    Ej: David4821Acosta
+    Generates a temporary password in the format:
+      first_name + 4 random digits + last_name
+    e.g. David4821Acosta
     """
     digits = "".join(random.choices(string.digits, k=4))
     first = (first_name or "user").strip()
@@ -28,7 +31,7 @@ def _generate_password(first_name: str, last_name: str) -> str:
 
 
 def _send_credentials_email(email: str, name: str, password: str, documenso_url: str = "") -> None:
-    """Envía las credenciales de Documenso al usuario con el diseño estándar de Paperless."""
+    """Sends Documenso credentials to the user using the standard Paperless email theme."""
     subject = "Tus credenciales en Documenso"
 
     login_line = f"\n🔗 Accede aquí: {documenso_url}" if documenso_url else ""
@@ -61,44 +64,41 @@ def _send_credentials_email(email: str, name: str, password: str, documenso_url:
 @shared_task
 def sync_documenso_user(user_id: int, group_link_id: int) -> str:
     """
-    Crea un usuario en Documenso para el par (user, group_link) si aún no fue sincronizado,
-    provisiona el workspace del grupo si no existe, y añade al usuario al workspace.
-    Envía las credenciales al correo del usuario.
+    Creates a user in Documenso for the (user, group_link) pair if not yet synced,
+    provisions the group workspace if it does not exist, and adds the user to it.
+    Sends credentials to the user by email.
     """
-    from paperless_documenso.models import DocumensoGroupLink
-    from paperless_documenso.models import DocumensoUserSync
-
     try:
         user = User.objects.get(pk=user_id)
     except User.DoesNotExist:
-        logger.warning("sync_documenso_user: usuario %s no encontrado", user_id)
+        logger.warning("sync_documenso_user: user %s not found", user_id)
         return f"User {user_id} not found"
 
     try:
         group_link = DocumensoGroupLink.objects.get(pk=group_link_id)
     except DocumensoGroupLink.DoesNotExist:
         logger.warning(
-            "sync_documenso_user: group_link %s no encontrado", group_link_id
+            "sync_documenso_user: group_link %s not found", group_link_id
         )
         return f"GroupLink {group_link_id} not found"
 
     if not group_link.is_configured:
-        return f"GroupLink {group_link_id} no tiene org name configurado"
+        return f"GroupLink {group_link_id} has no org name configured"
 
     if not user.email:
         logger.info(
-            "sync_documenso_user: usuario %s no tiene email, omitiendo", user_id
+            "sync_documenso_user: user %s has no email, skipping", user_id
         )
         return f"User {user_id} has no email"
 
-    # Constraint: no llamar a Documenso si ya fue sincronizado
+    # Constraint: do not call Documenso if already synced
     sync_record, _ = DocumensoUserSync.objects.get_or_create(
         user=user,
         group_link=group_link,
     )
     if sync_record.synced:
         logger.info(
-            "sync_documenso_user: usuario %s ya sincronizado para group_link %s, omitiendo",
+            "sync_documenso_user: user %s already synced for group_link %s, skipping",
             user_id,
             group_link_id,
         )
@@ -108,12 +108,12 @@ def sync_documenso_user(user_id: int, group_link_id: int) -> str:
     name = f"{user.first_name} {user.last_name}".strip() or user.username
     client = DocumensoClient()
 
-    # 1. Buscar usuario por email; si no existe, crearlo
+    # 1. Look up user by email; create if not found
     created_password: str | None = None
     user_data = client.lookup_user_by_email(user.email)
     if user_data:
         logger.info(
-            "sync_documenso_user: usuario %s ya existe en Documenso, se reutiliza",
+            "sync_documenso_user: user %s already exists in Documenso, reusing",
             user.email,
         )
     else:
@@ -122,12 +122,12 @@ def sync_documenso_user(user_id: int, group_link_id: int) -> str:
             user_data = client.create_user(email=user.email, name=name, password=password)
             created_password = password
         except DocumensoAPIError as exc:
-            # Si hubo carrera y otro worker lo creó justo antes, recuperamos por email.
+            # If a race occurred and another worker created the user just before us, look up by email.
             if exc.status_code == 409:
                 user_data = client.lookup_user_by_email(user.email)
                 if not user_data:
                     logger.error(
-                        "sync_documenso_user: conflicto al crear %s, pero lookup posterior no encontró usuario",
+                        "sync_documenso_user: conflict creating %s, but subsequent lookup did not find the user",
                         user.email,
                     )
                     return f"Conflict creating user {user.email}, and lookup did not find the user"
@@ -149,33 +149,32 @@ def sync_documenso_user(user_id: int, group_link_id: int) -> str:
             group_link.documenso_team_token = team_token
             group_link.save(update_fields=["documenso_team_token"])
             logger.info(
-                "sync_documenso_user: team_token guardado para group_link %s",
+                "sync_documenso_user: team_token saved for group_link %s",
                 group_link_id,
             )
     except DocumensoAPIError as exc:
         logger.error(
-            "sync_documenso_user: error al provisionar workspace '%s': %s",
+            "sync_documenso_user: error provisioning workspace '%s': %s",
             org_name,
             exc,
         )
         return f"Error provisioning workspace '{org_name}': {exc}"
 
-    # 3. Añadir usuario al workspace
+    # 3. Add user to workspace
     if documenso_user_id:
         try:
             client.add_user_to_workspace(user_id=documenso_user_id, org_name=org_name)
         except DocumensoAPIError as exc:
             logger.error(
-                "sync_documenso_user: error al añadir usuario %s al workspace '%s': %s",
+                "sync_documenso_user: error adding user %s to workspace '%s': %s",
                 user.email,
                 org_name,
                 exc,
             )
-            # No bloqueamos la sincronización por este error
+            # Do not block the sync due to this error
 
-    # 4. Enviar credenciales por correo
-    from django.conf import settings as django_settings
-    documenso_url = getattr(django_settings, "DOCUMENSO_URL", "")
+    # 4. Send credentials by email
+    documenso_url = getattr(settings, "DOCUMENSO_URL", "")
     if created_password is not None:
         try:
             _send_credentials_email(
@@ -186,16 +185,16 @@ def sync_documenso_user(user_id: int, group_link_id: int) -> str:
             )
         except Exception as exc:
             logger.error(
-                "sync_documenso_user: error al enviar correo a %s: %s",
+                "sync_documenso_user: error sending email to %s: %s",
                 user.email,
                 exc,
             )
-            # Aunque el correo falle, el usuario ya fue creado — marcamos como sincronizado
-            # para no crear duplicados en Documenso.
+            # Even if the email fails, the user was already created — mark as synced
+            # to avoid creating duplicates in Documenso.
 
     sync_record.mark_synced()
     logger.info(
-        "sync_documenso_user: usuario %s sincronizado exitosamente en group_link %s",
+        "sync_documenso_user: user %s successfully synced for group_link %s",
         user.email,
         group_link_id,
     )
@@ -205,47 +204,45 @@ def sync_documenso_user(user_id: int, group_link_id: int) -> str:
 @shared_task
 def sync_all_group_users(group_link_id: int) -> str:
     """
-    Itera todos los usuarios del grupo y lanza sync_documenso_user para cada uno.
-    Se ejecuta cuando se asigna o actualiza el org name de un DocumensoGroupLink.
+    Iterates all users in the group and dispatches sync_documenso_user for each one.
+    Runs when the org name of a DocumensoGroupLink is assigned or updated.
     """
-    from paperless_documenso.models import DocumensoGroupLink
-
     try:
         group_link = DocumensoGroupLink.objects.select_related("group").get(
             pk=group_link_id
         )
     except DocumensoGroupLink.DoesNotExist:
         logger.warning(
-            "sync_all_group_users: group_link %s no encontrado", group_link_id
+            "sync_all_group_users: group_link %s not found", group_link_id
         )
         return f"GroupLink {group_link_id} not found"
 
     if not group_link.is_configured:
-        return f"GroupLink {group_link_id} no tiene org name configurado"
+        return f"GroupLink {group_link_id} has no org name configured"
 
-    # Provisionar el workspace inmediatamente, aunque el grupo esté vacío.
-    # Esto garantiza que la Organización y el Team existan en Documenso
-    # antes de que se agreguen usuarios.
+    # Provision the workspace immediately, even if the group is empty.
+    # This ensures the Organisation and Team exist in Documenso
+    # before any users are added.
     client = DocumensoClient()
     try:
         workspace_data = client.provision_workspace(org_name=group_link.documenso_org_name)
         logger.info(
-            "sync_all_group_users: workspace '%s' provisionado para group_link %s",
+            "sync_all_group_users: workspace '%s' provisioned for group_link %s",
             group_link.documenso_org_name,
             group_link_id,
         )
-        # Guardar el token del equipo si se recibió y aún no está almacenado
+        # Save the team token if received and not already stored
         team_token = workspace_data.get("team_token") if isinstance(workspace_data, dict) else None
         if team_token:
             group_link.documenso_team_token = team_token
             group_link.save(update_fields=["documenso_team_token"])
             logger.info(
-                "sync_all_group_users: team_token guardado para group_link %s",
+                "sync_all_group_users: team_token saved for group_link %s",
                 group_link_id,
             )
     except DocumensoAPIError as exc:
         logger.error(
-            "sync_all_group_users: error al provisionar workspace '%s': %s",
+            "sync_all_group_users: error provisioning workspace '%s': %s",
             group_link.documenso_org_name,
             exc,
         )
@@ -258,7 +255,7 @@ def sync_all_group_users(group_link_id: int) -> str:
         count += 1
 
     logger.info(
-        "sync_all_group_users: encoladas %s tareas de sincronización para group_link %s",
+        "sync_all_group_users: queued %s synchronisation tasks for group_link %s",
         count,
         group_link_id,
     )

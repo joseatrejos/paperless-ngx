@@ -3,7 +3,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("paperless_documenso", "0002_rename_documenso_api_key_docuensogrouplink_documenso_org_name"),
+        ("paperless_documenso", "0002_rename_documenso_api_key_documensogrouplink_documenso_org_name"),
     ]
 
     operations = [

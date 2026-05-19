@@ -7,7 +7,7 @@ logger = logging.getLogger("paperless.documenso.client")
 
 
 class DocumensoAPIError(Exception):
-    """Excepción lanzada cuando la API de documenso-django devuelve un error."""
+    """Raised when the documenso-django API returns an error."""
 
     def __init__(self, status_code: int, detail: str):
         self.status_code = status_code
@@ -39,7 +39,7 @@ class DocumensoClient:
         }
 
     def _post(self, path: str, payload: dict) -> dict:
-        """Realiza un POST a la API y devuelve el JSON de respuesta."""
+        """Performs a POST request to the API and returns the JSON response."""
         url = f"{self.base_url}{path}"
         try:
             with httpx.Client(timeout=30) as client:
@@ -57,16 +57,16 @@ class DocumensoClient:
         return response.json()
 
     def create_user(self, email: str, name: str, password: str) -> dict:
-        """Crea un usuario en Documenso vía documenso-django."""
+        """Creates a user in Documenso via documenso-django."""
         data = self._post(
             "/api/documenso/users",
             {"email": email, "name": name, "password": password},
         )
-        logger.info("Usuario creado en Documenso: %s", email)
+        logger.info("User created in Documenso: %s", email)
         return data
 
     def lookup_user_by_email(self, email: str) -> dict | None:
-        """Busca un usuario en Documenso por email. Devuelve None si no existe."""
+        """Looks up a user in Documenso by email. Returns None if not found."""
         try:
             return self._post("/api/documenso/users/lookup", {"email": email})
         except DocumensoAPIError as exc:
@@ -75,19 +75,19 @@ class DocumensoClient:
             raise
 
     def provision_workspace(self, org_name: str) -> dict:
-        """Crea (o recupera) el workspace compartido para el grupo."""
+        """Creates (or retrieves) the shared workspace for the group."""
         data = self._post("/api/documenso/workspaces", {"org_name": org_name})
         logger.info("Workspace provisionado en Documenso: %s", org_name)
         return data
 
     def add_user_to_workspace(self, user_id: int, org_name: str) -> dict:
-        """Añade un usuario al workspace compartido."""
+        """Adds a user to the shared workspace."""
         data = self._post(
             "/api/documenso/workspaces/members",
             {"user_id": user_id, "org_name": org_name},
         )
         logger.info(
-            "Usuario %s añadido al workspace '%s' en Documenso", user_id, org_name
+            "User %s added to workspace '%s' in Documenso", user_id, org_name
         )
         return data
 

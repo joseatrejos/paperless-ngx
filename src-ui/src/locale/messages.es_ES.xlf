@@ -11508,8 +11508,8 @@
         <target state="final">Nombre de la organización en Documenso. Al guardar se sincronizarán todos los usuarios del grupo.</target>
       </trans-unit>
       <trans-unit id="documenso.notConfigured" datatype="html">
-        <source>Documenso is not configured. Set PAPERLESS_DOCUMENSO_URL in docker-compose.env.</source>
-        <target state="final">Documenso no está configurado. Define PAPERLESS_DOCUMENSO_URL en docker-compose.env.</target>
+        <source>Documenso is not configured. Set PAPERLESS_DOCUMENSO_URL, DOCUMENSO_API_URL and DOCUMENSO_API_KEY in docker-compose.env.</source>
+        <target state="final">Documenso no está configurado. Define PAPERLESS_DOCUMENSO_URL, DOCUMENSO_API_URL y DOCUMENSO_API_KEY en docker-compose.env.</target>
       </trans-unit>
       <trans-unit id="documenso.noGroup" datatype="html">
         <source>You do not belong to a group with Documenso configured. Contact an administrator.</source>
