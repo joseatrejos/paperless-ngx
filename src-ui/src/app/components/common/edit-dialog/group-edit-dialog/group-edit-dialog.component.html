@@ -11,11 +11,23 @@
       <div class="row">
         <div class="col">
           <pngx-input-text i18n-title title="Name" formControlName="name" [error]="error?.name" autocomplete="off"></pngx-input-text>
+          <pngx-input-text i18n-title="@@group.documensoOrgName.title" title="Documenso Organisation Name" formControlName="documenso_org_name" autocomplete="off" i18n-hint="@@group.documensoOrgName.hint" hint="Organisation name in Documenso. Saving will sync all users in this group."></pngx-input-text>
           <pngx-permissions-select i18n-title title="Permissions" formControlName="permissions" [error]="error?.permissions"></pngx-permissions-select>
         </div>
       </div>
     </div>
     <div class="modal-footer">
+      @if (documensoLinkId) {
+        <button
+          type="button"
+          class="btn btn-outline-primary"
+          (click)="syncDocumensoUsers()"
+          [disabled]="networkActive || syncingDocumenso"
+          i18n="@@documenso.resync"
+        >
+          Re-sync Documenso users now
+        </button>
+      }
       <button type="button" class="btn btn-outline-secondary" (click)="cancel()" i18n [disabled]="networkActive">Cancel</button>
       <button type="submit" class="btn btn-primary" i18n [disabled]="networkActive">Save</button>
     </div>

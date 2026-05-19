@@ -10,6 +10,7 @@ import {
 } from '@angular/core'
 import { Router, RouterModule } from '@angular/router'
 import {
+  NgbModal,
   NgbProgressbarModule,
   NgbTooltipModule,
 } from '@ng-bootstrap/ng-bootstrap'
@@ -31,12 +32,14 @@ import { IsNumberPipe } from 'src/app/pipes/is-number.pipe'
 import { StoragePathNamePipe } from 'src/app/pipes/storage-path-name.pipe'
 import { UsernamePipe } from 'src/app/pipes/username.pipe'
 import { DocumentService } from 'src/app/services/rest/document.service'
+import { DocumensoGroupLinkService } from 'src/app/services/rest/documenso-group-link.service'
 import { ConfigService } from 'src/app/services/config.service'
 import { SettingsService } from 'src/app/services/settings.service'
 import { ToastService } from 'src/app/services/toast.service'
 import { CustomFieldDisplayComponent } from '../../common/custom-field-display/custom-field-display.component'
 import { PreviewPopupComponent } from '../../common/preview-popup/preview-popup.component'
 import { TagComponent } from '../../common/tag/tag.component'
+import { DocumensoTeamSelectorComponent } from '../../common/documenso-team-selector/documenso-team-selector.component'
 import { LoadingComponentWithPermissions } from '../../loading-component/loading.component'
 
 @Component({
@@ -71,6 +74,8 @@ export class DocumentCardSmallComponent
   private toastService = inject(ToastService)
   private router = inject(Router)
   private configService = inject(ConfigService)
+  private modalService = inject(NgbModal)
+  private documensoGroupLinkService = inject(DocumensoGroupLinkService)
 
   DisplayField = DisplayField
 
@@ -149,7 +154,7 @@ export class DocumentCardSmallComponent
     event.stopPropagation()
     if (!this.settingsService.get(SETTINGS_KEYS.DOCUMENSO_ENABLED)) {
       this.toastService.show({
-        content: $localize`Documenso is not configured. Set PAPERLESS_DOCUMENSO_URL and PAPERLESS_DOCUMENSO_TOKEN in docker-compose.env.`,
+        content: $localize`:@@documenso.notConfigured:Documenso is not configured. Set PAPERLESS_DOCUMENSO_URL in docker-compose.env.`,
         classname: 'error',
         delay: 10000,
         action: () => this.router.navigate(['/config']),
@@ -168,24 +173,56 @@ export class DocumentCardSmallComponent
         })
         return
       }
-      this.isSendingToDocumenso = true
-      this.toastService.showInfo($localize`Redirecting to Documenso...`)
-      this.documentService
-        .sendToDocumenso([this.document.id])
-        .pipe(first())
-        .subscribe({
-          next: (res) => {
-            this.isSendingToDocumenso = false
-            window.open(res.url, '_blank')
-          },
-          error: (err) => {
-            this.isSendingToDocumenso = false
-            this.toastService.showError(
-              $localize`Error sending document to Documenso`,
-              err
-            )
-          },
-        })
+      this.documensoGroupLinkService.getMyTeams().pipe(first()).subscribe({
+        next: (teams) => {
+          if (teams.length === 0) {
+            this.toastService.show({
+              content: $localize`:@@documenso.noGroup:You do not belong to a group with Documenso configured. Contact an administrator.`,
+              classname: 'error',
+              delay: 10000,
+            })
+            return
+          }
+          const doSend = (groupId: number) => {
+            this.isSendingToDocumenso = true
+            this.toastService.showInfo($localize`Redirecting to Documenso...`)
+            this.documentService
+              .sendToDocumenso([this.document.id], groupId)
+              .pipe(first())
+              .subscribe({
+                next: (res) => {
+                  this.isSendingToDocumenso = false
+                  window.open(res.url, '_blank')
+                },
+                error: (err) => {
+                  this.isSendingToDocumenso = false
+                  if (err.status === 403) {
+                    this.toastService.show({
+                      content: $localize`:@@documenso.noGroup:You do not belong to a group with Documenso configured. Contact an administrator.`,
+                      classname: 'error',
+                      delay: 10000,
+                    })
+                  } else {
+                    this.toastService.showError(
+                      $localize`Error sending document to Documenso`,
+                      err
+                    )
+                  }
+                },
+              })
+          }
+          if (teams.length === 1) {
+            doSend(teams[0].id)
+          } else {
+            const modal = this.modalService.open(DocumensoTeamSelectorComponent, { backdrop: 'static' })
+            modal.componentInstance.teams = teams
+            modal.result.then((groupId: number) => doSend(groupId), () => {})
+          }
+        },
+        error: (err) => {
+          this.toastService.showError($localize`Error checking Documenso teams`, err)
+        },
+      })
     })
   }
 }

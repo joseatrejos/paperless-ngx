@@ -46,6 +46,7 @@ DOCUMENSO_JSON_CONTENT_TYPE = "application/json"
 DOCUMENSO_PDF_CONTENT_TYPE = "application/pdf"
 
 DOCUMENSO_NOT_CONFIGURED = "Documenso integration is not configured"
+DOCUMENSO_USER_NO_GROUP = "User does not belong to a Documenso-configured group"
 DOCUMENSO_DOCUMENT_IDS_REQUIRED = "document_ids must be a non-empty list"
 DOCUMENSO_DOCUMENTS_NOT_FOUND = "One or more documents not found"
 DOCUMENSO_NO_DOCUMENT_ID = "Documenso returned no document id"

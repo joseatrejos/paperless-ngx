@@ -1,0 +1,31 @@
+<div class="modal-header">
+  <h4 class="modal-title" i18n="@@documenso.teamSelector.title">Select Documenso team</h4>
+  <button type="button" class="btn-close" aria-label="Close" (click)="activeModal.dismiss()"></button>
+</div>
+<div class="modal-body">
+  <p i18n="@@documenso.teamSelector.description">
+    You belong to multiple groups with Documenso configured. Select the team to send the document to:
+  </p>
+  <div class="list-group">
+    @for (team of teams; track team.id) {
+      <button
+        type="button"
+        class="list-group-item list-group-item-action d-flex align-items-center gap-2"
+        [class.active]="selectedId === team.id"
+        (click)="selectedId = team.id"
+      >
+        <i-bs name="{{ selectedId === team.id ? 'check-circle-fill' : 'circle' }}"></i-bs>
+        <span>
+          <strong>{{ team.documenso_org_name || team.group_name }}</strong>
+          @if (team.documenso_org_name && team.group_name) {
+            <small class="d-block text-muted">{{ team.group_name }}</small>
+          }
+        </span>
+      </button>
+    }
+  </div>
+</div>
+<div class="modal-footer">
+  <button type="button" class="btn btn-outline-secondary" (click)="activeModal.dismiss()" i18n="@@documenso.teamSelector.cancel">Cancel</button>
+  <button type="button" class="btn btn-primary" (click)="confirm()" [disabled]="selectedId === null" i18n="@@documenso.teamSelector.confirm">Send to Documenso</button>
+</div>

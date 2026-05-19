@@ -68,6 +68,8 @@ from paperless_mail.views import MailRuleViewSet
 from paperless_mail.views import OauthCallbackView
 from paperless_mail.views import ProcessedMailViewSet
 import paperless_discord.urls as discord_urls
+from paperless_documenso.views import DocumensoGroupLinkViewSet
+from paperless_documenso.views import DocumensoUserSyncViewSet
 
 api_router = DefaultRouter()
 api_router.register(r"correspondents", CorrespondentViewSet)
@@ -90,6 +92,8 @@ api_router.register(r"workflows", WorkflowViewSet)
 api_router.register(r"custom_fields", CustomFieldViewSet)
 api_router.register(r"config", ApplicationConfigurationViewSet)
 api_router.register(r"processed_mail", ProcessedMailViewSet)
+api_router.register(r"documenso_group_links", DocumensoGroupLinkViewSet)
+api_router.register(r"documenso_user_syncs", DocumensoUserSyncViewSet, basename="documenso_user_syncs")
 
 
 urlpatterns = [

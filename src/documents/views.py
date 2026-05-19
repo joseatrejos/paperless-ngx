@@ -136,6 +136,7 @@ from documents.consts import (
     DOCUMENSO_JSON_CONTENT_TYPE,
     DOCUMENSO_NO_DOCUMENT_ID,
     DOCUMENSO_NOT_CONFIGURED,
+    DOCUMENSO_USER_NO_GROUP,
     DOCUMENSO_PAYLOAD_FIELD,
     DOCUMENSO_PAYLOAD_TYPE,
     DOCUMENSO_PDF_CONTENT_TYPE,
@@ -3479,7 +3480,6 @@ class DocumensoSendView(GenericAPIView):
             return HttpResponseBadRequest(DOCUMENSO_NOT_CONFIGURED)
 
         document_ids = request.data.get(DOCUMENSO_DOCUMENT_IDS_KEY)
-        general_config = GeneralConfig()
 
         if not document_ids or not isinstance(document_ids, list):
             return HttpResponseBadRequest(DOCUMENSO_DOCUMENT_IDS_REQUIRED)
@@ -3497,7 +3497,26 @@ class DocumensoSendView(GenericAPIView):
                 return HttpResponseForbidden(DOCUMENSO_INSUFFICIENT_PERMISSIONS)
 
         api_url = f"{settings.DOCUMENSO_URL}{DOCUMENSO_CREATE_ENVELOPE_PATH}"
-        headers = {DOCUMENSO_AUTH_HEADER: f"{settings.DOCUMENSO_TOKEN}"}
+
+        # El token es obligatorio y proviene del grupo del usuario.
+        from paperless_documenso.models import DocumensoGroupLink
+        group_id = request.data.get("group_id")
+        if group_id:
+            group_link = DocumensoGroupLink.objects.filter(
+                pk=group_id,
+                group__user=request.user,
+                documenso_team_token__gt="",
+            ).first()
+        else:
+            group_link = DocumensoGroupLink.objects.filter(
+                group__user=request.user,
+                documenso_team_token__gt="",
+            ).first()
+
+        if not group_link:
+            return HttpResponseForbidden(DOCUMENSO_USER_NO_GROUP)
+
+        headers = {DOCUMENSO_AUTH_HEADER: f"{group_link.documenso_team_token}"}
 
         try:
             multipart_files = []
@@ -3559,11 +3578,14 @@ class DocumensoSendView(GenericAPIView):
                 logger.error(DOCUMENSO_RESPONSE_MISSING_DOCUMENT_ID_LOG, data)
                 return HttpResponse(DOCUMENSO_NO_DOCUMENT_ID, status=502)
 
-            if general_config.documenso_team_slug:
+            # Construir la URL de redirección usando el slug del grupo.
+            if group_link.documenso_org_name:
+                raw_slug = group_link.documenso_org_name.lower().strip()
+                team_slug = re.sub(r"[^a-z0-9]+", "-", raw_slug).strip("-")
                 documenso_url = (
                     f"{settings.DOCUMENSO_URL}"
                     + DOCUMENSO_DOCUMENT_EDIT_PATH.format(
-                        team_slug=general_config.documenso_team_slug,
+                        team_slug=team_slug,
                         document_id=doc_id,
                     )
                 )
