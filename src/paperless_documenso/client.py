@@ -59,7 +59,7 @@ class DocumensoClient:
     def create_user(self, email: str, name: str, password: str) -> dict:
         """Creates a user in Documenso via documenso-django."""
         data = self._post(
-            "/api/documenso/users",
+            "/api/documenso/users/",
             {"email": email, "name": name, "password": password},
         )
         logger.info("User created in Documenso: %s", email)
@@ -74,9 +74,9 @@ class DocumensoClient:
                 return None
             raise
 
-    def provision_workspace(self, org_name: str) -> dict:
+    def provision_workspace(self, org_name: str, owner_email: str) -> dict:
         """Creates (or retrieves) the shared workspace for the group."""
-        data = self._post("/api/documenso/workspaces", {"org_name": org_name})
+        data = self._post("/api/documenso/workspaces/", {"org_name": org_name, "owner_email": owner_email})
         logger.info("Workspace provisionado en Documenso: %s", org_name)
         return data
 

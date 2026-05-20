@@ -30,20 +30,29 @@ def _generate_password(first_name: str, last_name: str) -> str:
     return f"{first}{digits}{last}"
 
 
-def _send_credentials_email(email: str, name: str, password: str, documenso_url: str = "") -> None:
+def _send_credentials_email(email: str, name: str, password: str | None, documenso_url: str = "") -> None:
     """Sends Documenso credentials to the user using the standard Paperless email theme."""
-    subject = "Tus credenciales en Documenso"
-
     login_line = f"\n🔗 Accede aquí: {documenso_url}" if documenso_url else ""
 
-    body = (
-        f"Hola {name},\n\n"
-        f"Tu cuenta en Documenso ha sido creada exitosamente.\n\n"
-        f"📧 Usuario: {email}\n"
-        f"🔑 Contraseña temporal: {password}"
-        f"{login_line}\n\n"
-        f"Por seguridad, te recomendamos cambiar tu contraseña al iniciar sesión por primera vez."
-    )
+    if password is not None:
+        subject = "Tus credenciales en Documenso"
+        body = (
+            f"Hola {name},\n\n"
+            f"Tu cuenta en Documenso ha sido creada exitosamente.\n\n"
+            f"📧 Usuario: {email}\n"
+            f"🔑 Contraseña temporal: {password}"
+            f"{login_line}\n\n"
+            f"Por seguridad, te recomendamos cambiar tu contraseña al iniciar sesión por primera vez."
+        )
+    else:
+        subject = "Fuiste agregado a Documenso"
+        body = (
+            f"Hola {name},\n\n"
+            f"Has sido agregado a un workspace de Documenso.\n\n"
+            f"📧 Tu usuario es: {email}"
+            f"{login_line}\n\n"
+            f"Si no recuerdas tu contraseña, puedes restablecerla desde el portal de Documenso."
+        )
 
     html_message, inline_images = build_system_themed_email(
         subject=subject,
@@ -143,7 +152,7 @@ def sync_documenso_user(user_id: int, group_link_id: int) -> str:
 
     # 2. Provisionar workspace (idempotente) y capturar token si se genera uno nuevo
     try:
-        workspace_data = client.provision_workspace(org_name=org_name)
+        workspace_data = client.provision_workspace(org_name=org_name, owner_email=user.email)
         team_token = workspace_data.get("team_token") if isinstance(workspace_data, dict) else None
         if team_token:
             group_link.documenso_team_token = team_token
@@ -177,7 +186,7 @@ def sync_documenso_user(user_id: int, group_link_id: int) -> str:
     # The password is passed as a Celery argument (lives only in the broker queue)
     # and is never persisted to the database.
     documenso_url = getattr(settings, "DOCUMENSO_URL", "")
-    if created_password is not None:
+    if not sync_record.email_sent:
         _send_documenso_credentials_email.delay(
             sync_record.pk,
             name,
@@ -213,34 +222,6 @@ def sync_all_group_users(group_link_id: int) -> str:
     if not group_link.is_configured:
         return f"GroupLink {group_link_id} has no org name configured"
 
-    # Provision the workspace immediately, even if the group is empty.
-    # This ensures the Organisation and Team exist in Documenso
-    # before any users are added.
-    client = DocumensoClient()
-    try:
-        workspace_data = client.provision_workspace(org_name=group_link.documenso_org_name)
-        logger.info(
-            "sync_all_group_users: workspace '%s' provisioned for group_link %s",
-            group_link.documenso_org_name,
-            group_link_id,
-        )
-        # Save the team token if received and not already stored
-        team_token = workspace_data.get("team_token") if isinstance(workspace_data, dict) else None
-        if team_token:
-            group_link.documenso_team_token = team_token
-            group_link.save(update_fields=["documenso_team_token"])
-            logger.info(
-                "sync_all_group_users: team_token saved for group_link %s",
-                group_link_id,
-            )
-    except DocumensoAPIError as exc:
-        logger.error(
-            "sync_all_group_users: error provisioning workspace '%s': %s",
-            group_link.documenso_org_name,
-            exc,
-        )
-        return f"Error provisioning workspace '{group_link.documenso_org_name}': {exc}"
-
     users = group_link.group.user_set.all()
     count = 0
     for user in users:
@@ -264,7 +245,7 @@ def sync_all_group_users(group_link_id: int) -> str:
     retry_jitter=True,
 )
 def _send_documenso_credentials_email(
-    self, sync_record_id: int, name: str, password: str, documenso_url: str
+    self, sync_record_id: int, name: str, password: str | None, documenso_url: str
 ) -> str:
     """
     Sends the Documenso credentials email with automatic Celery retry.
