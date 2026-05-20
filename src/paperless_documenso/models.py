@@ -3,6 +3,8 @@ from django.contrib.auth.models import Group
 from django.db import models
 from django.utils import timezone
 
+from paperless_documenso.consts import SYNC_STATUS_FAIL, SYNC_STATUS_OK
+
 
 class DocumensoGroupLink(models.Model):
     """
@@ -75,7 +77,7 @@ class DocumensoUserSync(models.Model):
         unique_together = ("user", "group_link")
 
     def __str__(self):
-        status = "✓" if self.synced else "✗"
+        status = SYNC_STATUS_OK if self.synced else SYNC_STATUS_FAIL
         return f"{status} {self.user} @ {self.group_link}"
 
     def mark_synced(self):
