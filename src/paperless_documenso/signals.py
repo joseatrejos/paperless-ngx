@@ -1,5 +1,9 @@
 import logging
 
+from paperless_documenso.models import DocumensoGroupLink
+from paperless_documenso.tasks import sync_all_group_users
+from paperless_documenso.tasks import sync_documenso_user
+
 logger = logging.getLogger("paperless.documenso.signals")
 
 
@@ -9,8 +13,6 @@ def on_group_link_saved(sender, instance, created, **kwargs):
     If an org name is configured, triggers a bulk synchronisation of all
     users in the group asynchronously.
     """
-    from paperless_documenso.tasks import sync_all_group_users
-
     update_fields = kwargs.get("update_fields")
     if update_fields and set(update_fields).issubset({"documenso_team_token"}):
         # Avoid loops: when the task saves the team token, do not re-trigger bulk sync.
@@ -37,15 +39,10 @@ def on_user_groups_changed(sender, instance, action, pk_set, **kwargs):
     if action != "post_add" or not pk_set:
         return
 
-    from django.contrib.auth.models import Group
-
-    from paperless_documenso.models import DocumensoGroupLink
-    from paperless_documenso.tasks import sync_documenso_user
-
     # pk_set contains the PKs of the groups just added to the user
-    linked_groups = DocumensoGroupLink.objects.filter(
-        group_id__in=pk_set,
-        documenso_org_name__gt="",
+    linked_groups = (
+        DocumensoGroupLink.objects.filter(group_id__in=pk_set)
+        .exclude(documenso_org_name="")
     )
 
     for group_link in linked_groups:

@@ -64,6 +64,10 @@ class DocumensoUserSync(models.Model):
         help_text="True if the user has already been successfully created in Documenso.",
     )
     synced_at = models.DateTimeField(null=True, blank=True)
+    email_sent = models.BooleanField(
+        default=False,
+        help_text="True if the credentials email was successfully delivered to the user.",
+    )
 
     class Meta:
         verbose_name = "Documenso User Sync"

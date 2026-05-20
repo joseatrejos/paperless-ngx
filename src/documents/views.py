@@ -155,6 +155,7 @@ from documents.consts import (
 from documents.data_models import ConsumableDocument
 from documents.data_models import DocumentMetadataOverrides
 from documents.data_models import DocumentSource
+from paperless_documenso.models import DocumensoGroupLink
 from documents.file_handling import format_filename
 from documents.filters import CorrespondentFilterSet
 from documents.filters import CustomFieldFilterSet
@@ -3498,20 +3499,24 @@ class DocumensoSendView(GenericAPIView):
 
         api_url = f"{settings.DOCUMENSO_URL}{DOCUMENSO_CREATE_ENVELOPE_PATH}"
 
-        # El token es obligatorio y proviene del grupo del usuario.
-        from paperless_documenso.models import DocumensoGroupLink
         group_id = request.data.get("group_id")
         if group_id:
-            group_link = DocumensoGroupLink.objects.filter(
-                pk=group_id,
-                group__user=request.user,
-                documenso_team_token__gt="",
-            ).first()
+            group_link = (
+                DocumensoGroupLink.objects.filter(
+                    pk=group_id,
+                    group__user=request.user,
+                )
+                .exclude(documenso_team_token="")
+                .first()
+            )
         else:
-            group_link = DocumensoGroupLink.objects.filter(
-                group__user=request.user,
-                documenso_team_token__gt="",
-            ).first()
+            group_link = (
+                DocumensoGroupLink.objects.filter(
+                    group__user=request.user,
+                )
+                .exclude(documenso_team_token="")
+                .first()
+            )
 
         if not group_link:
             return HttpResponseForbidden(DOCUMENSO_USER_NO_GROUP)

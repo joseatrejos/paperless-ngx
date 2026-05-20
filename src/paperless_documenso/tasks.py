@@ -173,24 +173,17 @@ def sync_documenso_user(user_id: int, group_link_id: int) -> str:
             )
             # Do not block the sync due to this error
 
-    # 4. Send credentials by email
+    # 4. Dispatch credentials email as a separate task with automatic retry.
+    # The password is passed as a Celery argument (lives only in the broker queue)
+    # and is never persisted to the database.
     documenso_url = getattr(settings, "DOCUMENSO_URL", "")
     if created_password is not None:
-        try:
-            _send_credentials_email(
-                email=user.email,
-                name=name,
-                password=created_password,
-                documenso_url=documenso_url,
-            )
-        except Exception as exc:
-            logger.error(
-                "sync_documenso_user: error sending email to %s: %s",
-                user.email,
-                exc,
-            )
-            # Even if the email fails, the user was already created — mark as synced
-            # to avoid creating duplicates in Documenso.
+        _send_documenso_credentials_email.delay(
+            sync_record.pk,
+            name,
+            created_password,
+            documenso_url,
+        )
 
     sync_record.mark_synced()
     logger.info(
@@ -260,4 +253,43 @@ def sync_all_group_users(group_link_id: int) -> str:
         group_link_id,
     )
     return f"Queued {count} sync tasks for group_link {group_link_id}"
+
+
+@shared_task(
+    bind=True,
+    autoretry_for=(Exception,),
+    max_retries=5,
+    retry_backoff=True,
+    retry_backoff_max=600,
+    retry_jitter=True,
+)
+def _send_documenso_credentials_email(
+    self, sync_record_id: int, name: str, password: str, documenso_url: str
+) -> str:
+    """
+    Sends the Documenso credentials email with automatic Celery retry.
+
+    Retries up to 5 times with exponential back-off (max 10 min between
+    attempts) plus random jitter to avoid thundering herd.  The password
+    is passed as a task argument and lives only in the Celery broker
+    (Redis) during retry — it is never persisted to the database.
+    """
+    sync_record = DocumensoUserSync.objects.select_related("user").get(
+        pk=sync_record_id
+    )
+    user = sync_record.user
+
+    _send_credentials_email(
+        email=user.email,
+        name=name,
+        password=password,
+        documenso_url=documenso_url,
+    )
+
+    sync_record.email_sent = True
+    sync_record.save(update_fields=["email_sent"])
+    logger.info(
+        "_send_documenso_credentials_email: credentials sent to %s", user.email
+    )
+    return f"Credentials sent to {user.email}"
 

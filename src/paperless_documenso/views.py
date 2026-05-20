@@ -37,10 +37,12 @@ class DocumensoGroupLinkViewSet(ModelViewSet):
         that have a configured team token. Used to allow the user to select which
         team to send a document to when they belong to multiple Documenso groups.
         """
-        links = DocumensoGroupLink.objects.filter(
-            group__user=request.user,
-            documenso_team_token__gt="",
-        ).select_related("group").order_by("group__name")
+        links = (
+            DocumensoGroupLink.objects.filter(group__user=request.user)
+            .exclude(documenso_team_token="")
+            .select_related("group")
+            .order_by("group__name")
+        )
         serializer = self.get_serializer(links, many=True)
         return Response(serializer.data)
 
