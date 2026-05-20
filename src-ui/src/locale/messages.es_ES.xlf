@@ -11499,6 +11499,42 @@
         </context-group>
         <target state="final">Completado.</target>
       </trans-unit>
+      <trans-unit id="group.documensoOrgName.title" datatype="html">
+        <source>Documenso Organisation Name</source>
+        <target state="final">Nombre de Organización en Documenso</target>
+      </trans-unit>
+      <trans-unit id="group.documensoOrgName.hint" datatype="html">
+        <source>Organisation name in Documenso. Saving will sync all users in this group.</source>
+        <target state="final">Nombre de la organización en Documenso. Al guardar se sincronizarán todos los usuarios del grupo.</target>
+      </trans-unit>
+      <trans-unit id="documenso.notConfigured" datatype="html">
+        <source>Documenso is not configured. Set PAPERLESS_DOCUMENSO_URL, DOCUMENSO_API_URL and DOCUMENSO_API_KEY in docker-compose.env.</source>
+        <target state="final">Documenso no está configurado. Define PAPERLESS_DOCUMENSO_URL, DOCUMENSO_API_URL y DOCUMENSO_API_KEY en docker-compose.env.</target>
+      </trans-unit>
+      <trans-unit id="documenso.noGroup" datatype="html">
+        <source>You do not belong to a group with Documenso configured. Contact an administrator.</source>
+        <target state="final">No perteneces a ningún grupo con Documenso configurado. Contacta a un administrador.</target>
+      </trans-unit>
+      <trans-unit id="documenso.teamSelector.title" datatype="html">
+        <source>Select Documenso team</source>
+        <target state="final">Seleccionar equipo de Documenso</target>
+      </trans-unit>
+      <trans-unit id="documenso.teamSelector.description" datatype="html">
+        <source>You belong to multiple groups with Documenso configured. Select the team to send the document to:</source>
+        <target state="final">Perteneces a varios grupos con Documenso configurado. Selecciona el equipo al que enviar el documento:</target>
+      </trans-unit>
+      <trans-unit id="documenso.teamSelector.cancel" datatype="html">
+        <source>Cancel</source>
+        <target state="final">Cancelar</target>
+      </trans-unit>
+      <trans-unit id="documenso.teamSelector.confirm" datatype="html">
+        <source>Send to Documenso</source>
+        <target state="final">Enviar a Documenso</target>
+      </trans-unit>
+      <trans-unit id="documenso.resync" datatype="html">
+        <source>Re-sync Documenso users now</source>
+        <target state="final">Re-sincronizar usuarios de Documenso ahora</target>
+      </trans-unit>
     </body>
   </file>
 </xliff>

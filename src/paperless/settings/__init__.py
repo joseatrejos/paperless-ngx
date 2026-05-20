@@ -130,6 +130,7 @@ INSTALLED_APPS = [
     "documents.apps.DocumentsConfig",
     "paperless_mail.apps.PaperlessMailConfig",
     "paperless_discord.apps.PaperlessDiscordConfig",
+    "paperless_documenso.apps.PaperlessDocumensoConfig",
     "django.contrib.admin",
     "rest_framework",
     "rest_framework.authtoken",
@@ -328,6 +329,12 @@ DISCORD_SCOPES = get_list_from_env(
     default=["identify", "email"],
 )
 DISCORD_ALLOWED_ROLES = get_list_from_env("DISCORD_ALLOWED_ROLES", default=[])
+
+###############################################################################
+# Documenso                                                                   #
+###############################################################################
+DOCUMENSO_API_URL = os.getenv("DOCUMENSO_API_URL", "")
+DOCUMENSO_API_KEY = os.getenv("DOCUMENSO_API_KEY", "")
 
 ACCOUNT_LOGOUT_ON_GET = True
 ACCOUNT_DEFAULT_HTTP_PROTOCOL = os.getenv(
@@ -1045,8 +1052,7 @@ APP_LOGO = os.getenv("PAPERLESS_APP_LOGO", None)
 ###############################################################################
 
 DOCUMENSO_URL = os.getenv("PAPERLESS_DOCUMENSO_URL", "").rstrip("/")
-DOCUMENSO_TOKEN = os.getenv("PAPERLESS_DOCUMENSO_TOKEN", "")
-DOCUMENSO_ENABLED = bool(DOCUMENSO_URL and DOCUMENSO_TOKEN)
+DOCUMENSO_ENABLED = bool(DOCUMENSO_URL and DOCUMENSO_API_KEY)
 
 ###############################################################################
 # Machine Learning                                                            #

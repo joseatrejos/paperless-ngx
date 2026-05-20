@@ -1,0 +1,2 @@
+SYNC_STATUS_OK = "✓"
+SYNC_STATUS_FAIL = "✗"

@@ -113,8 +113,3 @@ PAPERLESS_SECRET_KEY=change-me
 
 #PAPERLESS_CONVERT_BINARY=/usr/bin/convert
 #PAPERLESS_GS_BINARY=/usr/bin/gs
-
-# Documenso integration
-
-PAPERLESS_DOCUMENSO_URL=https://documenso.com
-PAPERLESS_DOCUMENSO_TOKEN=api_182baxxxxxxxxxx
