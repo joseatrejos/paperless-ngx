@@ -9,10 +9,41 @@ logger = logging.getLogger("paperless.documenso.client")
 class DocumensoAPIError(Exception):
     """Raised when the documenso-django API returns an error."""
 
-    def __init__(self, status_code: int, detail: str):
+    def __init__(
+        self,
+        status_code: int,
+        detail: str,
+        method: str = "POST",
+        url: str = "",
+        location: str | None = None,
+        response_body: str = "",
+    ):
         self.status_code = status_code
         self.detail = detail
-        super().__init__(f"Documenso API error {status_code}: {detail}")
+        self.method = method
+        self.url = url
+        self.location = location
+        self.response_body = response_body
+        # Keep constructor args fully serializable so Celery can pickle this exception.
+        super().__init__(
+            status_code,
+            detail,
+            method,
+            url,
+            location,
+            response_body,
+        )
+
+    def __str__(self) -> str:
+        base = f"Documenso API error {self.status_code} on {self.method} {self.url}: {self.detail}"
+        if 300 <= self.status_code < 400 and self.location:
+            return (
+                f"{base} | redirect location={self.location} "
+                "(check DOCUMENSO_API_URL, scheme http/https, and endpoint trailing slash)"
+            )
+        if self.response_body:
+            return f"{base} | response={self.response_body}"
+        return base
 
 
 class DocumensoClient:
@@ -42,17 +73,26 @@ class DocumensoClient:
         """Performs a POST request to the API and returns the JSON response."""
         url = f"{self.base_url}{path}"
         try:
-            with httpx.Client(timeout=30) as client:
+            with httpx.Client(timeout=30, follow_redirects=False) as client:
                 response = client.post(url, json=payload, headers=self._headers())
         except httpx.RequestError as exc:
-            raise DocumensoAPIError(0, str(exc)) from exc
+            raise DocumensoAPIError(0, str(exc), "POST", url) from exc
 
         if response.status_code not in (200, 201):
+            response_text = (response.text or "").strip()
+            response_excerpt = response_text[:300]
             try:
-                detail = response.json().get("detail", response.text)
+                detail = response.json().get("detail", response_excerpt)
             except Exception:
-                detail = response.text
-            raise DocumensoAPIError(response.status_code, detail)
+                detail = response_excerpt
+            raise DocumensoAPIError(
+                response.status_code,
+                detail,
+                "POST",
+                url,
+                response.headers.get("location"),
+                response_excerpt,
+            )
 
         return response.json()
 

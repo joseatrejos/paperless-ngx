@@ -119,7 +119,16 @@ def sync_documenso_user(user_id: int, group_link_id: int) -> str:
 
     # 1. Look up user by email; create if not found
     created_password: str | None = None
-    user_data = client.lookup_user_by_email(user.email)
+    try:
+        user_data = client.lookup_user_by_email(user.email)
+    except DocumensoAPIError as exc:
+        logger.error(
+            "sync_documenso_user: lookup failed for %s: %s",
+            user.email,
+            exc,
+        )
+        return f"Error looking up user {user.email} in Documenso: {exc}"
+
     if user_data:
         logger.info(
             "sync_documenso_user: user %s already exists in Documenso, reusing",
