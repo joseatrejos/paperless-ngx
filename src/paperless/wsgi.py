@@ -10,10 +10,12 @@ https://docs.djangoproject.com/en/1.10/howto/deployment/wsgi/
 import os
 
 from django.core.wsgi import get_wsgi_application
+from paperless.db_checks import wait_for_database_connection
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "paperless.settings")
 
 application = get_wsgi_application()
+wait_for_database_connection()
 
 import logging  # noqa: E402
 

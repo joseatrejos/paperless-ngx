@@ -1,0 +1,69 @@
+# Compose file para PROBAR paperless-ngx desde tu código fuente local
+# (con tus cambios de validación de BD) usando la MISMA imagen Docker
+# oficial que usan en producción (el Dockerfile del repo), en vez de
+# armar un entorno Python a mano con uv/pip en Windows.
+#
+# Esto evita TODOS los problemas anteriores:
+#   - El build corre dentro de Linux (vía Docker Desktop), así que el
+#     import de "grp" en checks.py ya no truena.
+#   - El uv.lock sí soporta ese Linux, así que no hay conflicto de
+#     plataforma.
+#   - No hay .venv de Windows montado que confunda a uv/pip.
+#   - Todas las dependencias del sistema (postgres-client, tesseract,
+#     etc.) ya vienen resueltas por el Dockerfile, no las instalamos
+#     nosotros.
+#
+# Uso (parado en la carpeta raíz del repo, junto al Dockerfile):
+#   docker compose -f docker-compose.local-test.yml up --build
+#
+services:
+  broker:
+    image: docker.io/library/redis:8
+    restart: unless-stopped
+    volumes:
+      - redisdata:/data
+
+  db:
+    image: docker.io/library/postgres:18
+    restart: unless-stopped
+    volumes:
+      - pgdata:/var/lib/postgresql
+    environment:
+      POSTGRES_DB: paperless
+      POSTGRES_USER: paperless
+      POSTGRES_PASSWORD: paperless
+
+  webserver:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - db
+      - broker
+    ports:
+      - "8000:8000"
+    volumes:
+      - data:/usr/src/paperless/data
+      - media:/usr/src/paperless/media
+      - ./export:/usr/src/paperless/export
+      - ./consume:/usr/src/paperless/consume
+    environment:
+      PAPERLESS_REDIS: redis://broker:6379
+      PAPERLESS_DBHOST: db
+      PAPERLESS_DBENGINE: postgresql
+      PAPERLESS_DBUSER: paperless
+      PAPERLESS_DBPASS: paperless
+      PAPERLESS_DBNAME: paperless
+      PAPERLESS_SECRET_KEY: test-secret-key-solo-para-pruebas-locales
+      PAPERLESS_URL: http://localhost:8000
+      PAPERLESS_ADMIN_USER: admin
+      PAPERLESS_ADMIN_PASSWORD: admin1234
+      PAPERLESS_DB_CONNECT_RETRY_DELAY: "2"
+      PAPERLESS_DB_CONNECT_RETRIES: "15"
+
+volumes:
+  data:
+  media:
+  pgdata:
+  redisdata:
