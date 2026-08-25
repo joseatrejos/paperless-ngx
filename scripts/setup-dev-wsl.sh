@@ -19,7 +19,7 @@ sudo apt-get update -qq
 sudo apt-get install -y \
     python3 python3-pip python3-dev \
     imagemagick fonts-liberation gnupg \
-    libpq-dev \
+    libpq-dev default-libmysqlclient-dev \
     pkg-config libmagic-dev poppler-utils \
     unpaper ghostscript icc-profiles-free \
     qpdf liblept5 libxml2 pngquant zlib1g \
@@ -49,7 +49,7 @@ if ! command -v node &>/dev/null || [ "$(node -v | sed 's/^v//' | cut -d. -f1)" 
 fi
 echo "node $(node -v)"
 
-corepack enable 2>/dev/null || sudo env "PATH=$PATH" corepack enable
+sudo corepack enable
 PNPM_VERSION=$(grep -m1 '"packageManager"' "$PROJECT_PATH/src-ui/package.json" | sed -E 's/.*pnpm@([0-9.]+).*/\1/')
 corepack prepare "pnpm@${PNPM_VERSION:-10.17.1}" --activate
 echo "pnpm $(pnpm --version)"
@@ -80,7 +80,7 @@ echo "paperless.conf configurado."
 echo ""
 echo "[6/7] Instalando dependencias Python (uv) y frontend (pnpm)..."
 cd "$PROJECT_PATH"
-uv sync --group dev --extra postgres
+uv sync --group dev
 cd "$PROJECT_PATH/src-ui"
 pnpm install
 
